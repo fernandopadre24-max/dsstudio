@@ -1536,6 +1536,12 @@
                                     <option value="manutencao">Em Manutencao</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label>Fornecedor (opcional)</label>
+                                <select id="eq-supplier">
+                                    <option value="">Nenhum</option>
+                                </select>
+                            </div>
                             <div class="form-group" style="grid-column: span 2;">
                                 <label>Observacoes</label>
                                 <input type="text" id="eq-notes" placeholder="Informacoes adicionais...">
@@ -1598,6 +1604,7 @@
                                     <th>Disponivel</th>
                                     <th>Valor Unit.</th>
                                     <th>Marca</th>
+                                    <th>Fornecedor</th>
                                     <th>Status</th>
                                     <th>Acoes</th>
                                 </tr>
@@ -2504,6 +2511,7 @@
                 value: parseFloat(document.getElementById('eq-value').value),
                 brand: document.getElementById('eq-brand').value.trim(),
                 status: document.getElementById('eq-status').value,
+                supplier: document.getElementById('eq-supplier').value,
                 notes: document.getElementById('eq-notes').value.trim(),
                 available: parseInt(document.getElementById('eq-qty').value)
             };
@@ -2604,6 +2612,7 @@
                                 <option value="manutencao" ${eq.status === 'manutencao' ? 'selected' : ''}>Em Manutencao</option>
                             </select>
                         </div>
+                        <div class="form-group"><label>Fornecedor (opcional)</label><select id="ee-supplier"><option value="">Nenhum</option>${suppliers.map(s => `<option value="${escAttr(s.name)}" ${eq.supplier === s.name ? 'selected' : ''}>${escAttr(s.name)}</option>`).join('')}</select></div>
                         <div class="form-group"><label>Foto (URL)</label><input type="text" id="ee-photo" value="${escAttr(eq.photo || '')}" placeholder="https://... ou x para remover"></div>
                     </div>
                     <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
@@ -2631,6 +2640,7 @@
             eq.value = parseFloat(String(document.getElementById('ee-value').value).replace(',', '.')) || 0;
             eq.brand = document.getElementById('ee-brand').value.trim();
             eq.status = document.getElementById('ee-status').value;
+            eq.supplier = document.getElementById('ee-supplier').value;
             const ph = document.getElementById('ee-photo').value.trim();
             if (ph.toLowerCase() === 'x') eq.photo = '';
             else if (ph) eq.photo = ph;
@@ -2640,13 +2650,20 @@
         }
 
         function renderInventory() {
+            const sel = document.getElementById('eq-supplier');
+            if (sel) {
+                const cur = sel.value;
+                sel.innerHTML = '<option value="">Nenhum</option>' + suppliers.map(s => '<option value="' + escAttr(s.name) + '">' + escAttr(s.name) + '</option>').join('');
+                sel.value = cur;
+            }
+
             const search = document.getElementById('search-inventory').value.toLowerCase();
             const cat = document.getElementById('filter-category').value;
             const fs = document.getElementById('filter-inv-status').value;
             const zero = document.getElementById('filter-inv-zero').checked;
 
             let filtered = inventory.filter(eq => {
-                const ms = eq.name.toLowerCase().includes(search) || (eq.brand && eq.brand.toLowerCase().includes(search));
+                const ms = eq.name.toLowerCase().includes(search) || (eq.brand && eq.brand.toLowerCase().includes(search)) || (eq.supplier && eq.supplier.toLowerCase().includes(search));
                 const mc = !cat || eq.category === cat;
                 const mss = !fs || eq.status === fs;
                 const mz = !zero || eq.available <= 0;
@@ -2661,7 +2678,7 @@
 
             tbody.innerHTML = filtered.map(eq => {
                 if (eq.id === editingEqId) {
-                    return `<tr id="inventory-edit-row"><td colspan="9">${equipmentEditRowHTML(eq)}</td></tr>`;
+                    return `<tr id="inventory-edit-row"><td colspan="10">${equipmentEditRowHTML(eq)}</td></tr>`;
                 }
                 if (confirmDel && confirmDel.type === 'equipment' && confirmDel.id === eq.id) {
                     return confirmStripRowHTML('equipment', eq.id, 'Excluir este equipamento?', 'danger');
@@ -2675,6 +2692,7 @@
                     <td><strong style="color:${eq.available > 0 ? 'var(--green)' : 'var(--red)'}">${eq.available}</strong></td>
                     <td>${fmtBRL(eq.value)}</td>
                     <td>${eq.brand || '-'}</td>
+                    <td>${eq.supplier ? `<span class="badge badge-blue">${eq.supplier}</span>` : '-'}</td>
                     <td><span class="badge ${eq.status === 'disponivel' ? 'badge-green' : 'badge-yellow'}">${eq.status === 'disponivel' ? 'Disponivel' : 'Manutencao'}</span></td>
                     <td class="action-btns">
                         <button class="btn btn-ghost btn-sm" onclick="editEquipmentInline(${eq.id})">&#9998;</button>
