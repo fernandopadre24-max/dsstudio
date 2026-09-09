@@ -742,6 +742,15 @@
             color: var(--text-secondary);
         }
 
+        .event-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
         /* ===== MODAL ===== */
         .modal-bg {
             display: none;
@@ -2041,6 +2050,19 @@
         }
 
         // ===== NAV =====
+        function refreshCurrentPage() {
+            const act = document.querySelector('.page.active');
+            if (!act) return;
+            const id = act.id;
+            if (id === 'page-dashboard') renderDashboard();
+            else if (id === 'page-inventory') renderInventory();
+            else if (id === 'page-rentals') renderRentals();
+            else if (id === 'page-clients') renderClients();
+            else if (id === 'page-events') renderEvents();
+            else if (id === 'page-reports') renderReports();
+            else if (id === 'page-settings') { renderSettings(); updateDbStatus(); }
+        }
+
         document.getElementById('main-nav').addEventListener('click', function(e) {
             const btn = e.target.closest('button');
             if (!btn) return;
@@ -2150,6 +2172,7 @@
             if (!confirm('Excluir este equipamento?')) return;
             inventory = inventory.filter(e => e.id !== id);
             save(); renderInventory(); updateStats();
+            refreshCurrentPage();
             dbDelete('inventory', id);
         }
 
@@ -2306,6 +2329,7 @@
             });
             r.status = 'concluido';
             save(); renderRentals(); updateStats();
+            refreshCurrentPage();
             dbUpdate('rentals', r);
             r.equipment.forEach(item => {
                 const eq = inventory.find(e => e.id === item.id);
@@ -2322,6 +2346,7 @@
             });
             r.status = 'cancelado';
             save(); renderRentals(); updateStats();
+            refreshCurrentPage();
             dbUpdate('rentals', r);
             r.equipment.forEach(item => {
                 const eq = inventory.find(e => e.id === item.id);
@@ -2340,6 +2365,7 @@
             }
             rentals = rentals.filter(x => x.id !== id);
             save(); renderRentals(); updateStats();
+            refreshCurrentPage();
             dbDelete('rentals', id);
             if (r && r.status !== 'concluido' && r.status !== 'cancelado') {
                 r.equipment.forEach(item => {
@@ -2377,8 +2403,131 @@
                     ${eqList}
                     <div class="summary-total">Total: ${fmtBRL(r.totalValue)}</div>
                 </div>
+                <div class="btn-group" style="justify-content:flex-end;margin-top:16px;flex-wrap:wrap;">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Fechar</button>
+                    <button type="button" class="btn btn-ghost" onclick="closeModal(); editRental(${r.id})">&#9998; Editar</button>
+                    ${r.status !== 'cancelado' ? `<button type="button" class="btn btn-accent" onclick="closeModal(); payRental(${r.id})">&#128176; Receber</button>` : ''}
+                    ${(r.status === 'agendado' || r.status === 'em andamento') ? `
+                        <button type="button" class="btn btn-green" onclick="closeModal(); returnEquipment(${r.id})">&#10003; Devolver</button>
+                        <button type="button" class="btn btn-danger-ghost" onclick="closeModal(); cancelRental(${r.id})">&#10005; Cancelar</button>` : ''}
+                    <button type="button" class="btn btn-danger-ghost" onclick="closeModal(); deleteRental(${r.id})">&#128465; Excluir</button>
+                </div>
             `;
             document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function editRental(id) {
+            const r = rentals.find(x => x.id === id);
+            if (!r) return;
+
+            const opts = clients.map(c => `<option value="${escAttr(c.name)}" ${c.name === r.client ? 'selected' : ''}>${escAttr(c.name)}</option>`).join('');
+
+            const eqSel = inventory.map(eq => {
+                const cur = (r.equipment || []).find(e => e.id === eq.id);
+                const checked = cur ? 'checked' : '';
+                const maxV = eq.available + (cur ? cur.qty : 0);
+                return `
+                    <div class="eq-check ${checked ? 'checked' : ''}" onclick="toggleEqCheck(this, ${eq.id})">
+                        <input type="checkbox" id="rnt-eq-${eq.id}" value="${eq.id}" ${checked}>
+                        <label for="rnt-eq-${eq.id}">${escAttr(eq.name)}<small>${escAttr(eq.category)} &bull; Disp: ${maxV}</small></label>
+                        <input type="number" class="qty-input" id="rnt-eq-qty-${eq.id}" min="1" max="${Math.max(1, maxV)}" value="${cur ? cur.qty : 1}" ${maxV <= 0 ? 'disabled' : ''} onclick="event.stopPropagation()">
+                    </div>`;
+            }).join('');
+
+            const statusOpts = ['agendado', 'em andamento', 'concluido', 'cancelado'].map(s =>
+                `<option value="${s}" ${r.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`
+            ).join('');
+
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#9998; Editar Aluguel</h2>
+                <form id="form-edit-rental" onsubmit="saveRentalEdits(${r.id}); return false;">
+                    <div class="form-grid">
+                        <div class="form-group" style="grid-column:span 2;">
+                            <label>Cliente *</label>
+                            <input type="text" id="rer-client" required value="${escAttr(r.client)}" list="client-list">
+                            ${clients.length ? `<select id="rer-client-select" style="margin-top:6px;" onchange="document.getElementById('rer-client').value=this.value"><option value="">Escolher cliente...</option>${opts}</select>` : ''}
+                        </div>
+                        <div class="form-group"><label>Telefone</label><input type="text" id="rer-phone" value="${escAttr(r.phone || '')}"></div>
+                        <div class="form-group"><label>Nome do Evento *</label><input type="text" id="rer-event" required value="${escAttr(r.eventName)}"></div>
+                        <div class="form-group"><label>Local *</label><input type="text" id="rer-location" required value="${escAttr(r.location)}"></div>
+                        <div class="form-group"><label>Data *</label><input type="date" id="rer-date" required value="${r.date}"></div>
+                        <div class="form-group"><label>Inicio *</label><input type="time" id="rer-start" required value="${r.timeStart}"></div>
+                        <div class="form-group"><label>Fim</label><input type="time" id="rer-end" value="${r.timeEnd || ''}"></div>
+                        <div class="form-group"><label>Valor Total (R$)</label><input type="number" id="rer-value" min="0" step="0.01" value="${r.totalValue || 0}"></div>
+                        <div class="form-group"><label>Valor Recebido (R$)</label><input type="number" id="rer-deposit" min="0" step="0.01" value="${r.deposit || 0}"></div>
+                        <div class="form-group"><label>Status</label><select id="rer-status">${statusOpts}</select></div>
+                        <div class="form-group" style="grid-column:span 2;"><label>Observacoes</label><input type="text" id="rer-notes" value="${escAttr(r.notes || '')}"></div>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <label style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.8px;">Material deste aluguel</label>
+                        <div class="eq-selector">${eqSel || '<div class="empty-state"><p>Nenhum equipamento cadastrado</p></div>'}</div>
+                    </div>
+                    <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
+                        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-accent">&#10003; Salvar Alteracoes</button>
+                    </div>
+                </form>
+            `;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function saveRentalEdits(id) {
+            const r = rentals.find(x => x.id === id);
+            if (!r) return;
+
+            const clientName = document.getElementById('rer-client').value.trim();
+            if (!clientName) { alert('Informe o nome do cliente.'); return; }
+
+            const selected = [];
+            inventory.forEach(eq => {
+                const cb = document.getElementById('rnt-eq-' + eq.id);
+                if (cb && cb.checked) {
+                    const qty = Math.max(1, parseInt(document.getElementById('rnt-eq-qty-' + eq.id).value) || 1);
+                    selected.push({ id: eq.id, name: eq.name, category: eq.category, qty, unitValue: eq.value });
+                }
+            });
+            if (!selected.length) { alert('Selecione pelo menos um equipamento!'); return; }
+
+            const wasActive = r.status !== 'concluido' && r.status !== 'cancelado';
+
+            const oldMap = {};
+            (r.equipment || []).forEach(e => { oldMap[e.id] = (oldMap[e.id] || 0) + e.qty; });
+            const newMap = {};
+            selected.forEach(e => { newMap[e.id] = (newMap[e.id] || 0) + e.qty; });
+
+            const ids = {};
+            Object.keys(oldMap).forEach(k => ids[k] = 1);
+            Object.keys(newMap).forEach(k => ids[k] = 1);
+            Object.keys(ids).forEach(eid => {
+                const eq = inventory.find(e => e.id == eid);
+                if (!eq) return;
+                const diff = (newMap[eid] || 0) - (oldMap[eid] || 0);
+                if (diff !== 0) {
+                    if (wasActive) eq.available = Math.max(0, Math.min(eq.qty, eq.available - diff));
+                    dbUpdate('inventory', eq);
+                }
+            });
+
+            r.client = clientName;
+            r.phone = document.getElementById('rer-phone').value.trim();
+            r.eventName = document.getElementById('rer-event').value.trim();
+            r.location = document.getElementById('rer-location').value.trim();
+            r.date = document.getElementById('rer-date').value;
+            r.timeStart = document.getElementById('rer-start').value;
+            r.timeEnd = document.getElementById('rer-end').value;
+            r.totalValue = parseFloat(document.getElementById('rer-value').value) || 0;
+            r.deposit = parseFloat(document.getElementById('rer-deposit').value) || 0;
+            r.status = document.getElementById('rer-status').value;
+            r.notes = document.getElementById('rer-notes').value.trim();
+            r.equipment = selected;
+
+            const mc = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+            if (mc) mc.lastRentDate = r.date;
+
+            save();
+            renderRentals(); renderEquipmentSelector(); updateStats(); fillClientList(); refreshCurrentPage();
+            closeModal();
+            dbUpdate('rentals', r);
         }
 
         function closeModal() {
@@ -2422,6 +2571,7 @@
                     <td><span class="badge ${statusBadge(r.status)}">${r.status}</span></td>
                     <td class="action-btns">
                         <button class="btn btn-ghost btn-sm" onclick="viewRental(${r.id})" title="Detalhes">&#128065;</button>
+                        <button class="btn btn-ghost btn-sm" onclick="editRental(${r.id})" title="Editar">&#9998;</button>
                         ${r.status !== 'cancelado' ? `<button class="btn btn-ghost btn-sm" onclick="payRental(${r.id})" title="Receber pagamento">&#128176;</button>` : ''}
                         ${(r.status === 'agendado' || r.status === 'em andamento') ? `
                             <button class="btn btn-green btn-sm" onclick="returnEquipment(${r.id})" title="Devolver">&#10003;</button>
@@ -2673,6 +2823,14 @@
                         <span class="badge ${statusBadge(r.status)}">${r.status}</span>
                     </div>
                     <div class="event-material">&#128230; ${r.equipment.map(e => e.qty + 'x ' + e.name).join(', ')}</div>
+                    <div class="event-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-ghost btn-sm" onclick="editRental(${r.id})">&#9998; Editar</button>
+                        ${(r.status === 'agendado' || r.status === 'em andamento') ? `
+                            <button class="btn btn-green btn-sm" onclick="returnEquipment(${r.id})">&#10003; Devolver</button>
+                            <button class="btn btn-danger-ghost btn-sm" onclick="cancelRental(${r.id})">&#10005; Cancelar</button>
+                        ` : ''}
+                        <button class="btn btn-danger-ghost btn-sm" onclick="deleteRental(${r.id})">&#128465; Excluir</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -2893,6 +3051,7 @@ renderPieChart('dash-chart-pie', cats);
             if (!confirm(msg)) return;
             clients = clients.filter(x => x.id !== id);
             save(); renderClients(); fillClientList();
+            refreshCurrentPage();
             dbDelete('clients', id);
         }
 
