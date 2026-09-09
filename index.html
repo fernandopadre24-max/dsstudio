@@ -182,6 +182,97 @@
             font-weight: 400;
         }
 
+        /* ===== HEADER CLOCK ===== */
+        .clock {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-glass);
+            min-width: 96px;
+        }
+
+        .clock .time {
+            font-weight: 800;
+            color: var(--accent-2);
+            font-size: 1.05rem;
+            line-height: 1.15;
+            letter-spacing: 0.5px;
+        }
+
+        .clock .date {
+            color: var(--text-secondary);
+            font-size: 0.66rem;
+            text-transform: capitalize;
+        }
+
+        /* ===== CALCULATOR ===== */
+        .calc-wrap { max-width: 300px; margin: 0 auto; }
+
+        .calc-screen {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            text-align: right;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            min-height: 58px;
+            word-break: break-all;
+            overflow: hidden;
+        }
+
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+        .calc-btn {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 0;
+            font-size: 1.05rem;
+            cursor: pointer;
+            color: var(--text);
+            font-family: inherit;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .calc-btn:hover { border-color: var(--accent); background: var(--input-bg-focus); }
+        .calc-op { color: var(--accent-2); }
+        .calc-clear { color: var(--red); }
+
+        /* ===== CALENDAR ===== */
+        .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .cal-title { font-size: 1rem; font-weight: 700; text-transform: capitalize; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .cal-cell {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 9px 0;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text);
+            position: relative;
+        }
+        .cal-dayname { border: none; color: var(--text-secondary); font-weight: 700; font-size: 0.7rem; padding: 4px 0; }
+        .cal-empty { border: none; }
+        .cal-today { background: var(--accent-glow); border-color: var(--accent); font-weight: 800; }
+        .cal-has { cursor: pointer; color: var(--accent-2); font-weight: 700; }
+        .cal-has:hover { background: var(--input-bg-focus); }
+        .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-2); margin: 4px auto 0; }
+        .cal-total {
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: var(--input-bg);
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
         /* ===== LAYOUT + NAV LATERAL ===== */
         .layout {
             display: flex;
@@ -1196,6 +1287,12 @@
                 <button class="btn btn-ghost btn-sm" onclick="editTitle()" title="Renomear sistema" style="padding:5px 9px;">&#9998;</button>
             </div>
             <div class="header-stats">
+                <div class="clock" id="header-clock">
+                    <span class="time">--:--</span>
+                    <span class="date">-</span>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="openCalculator()" title="Calculadora">&#129518;</button>
+                <button class="btn btn-ghost btn-sm" onclick="openCalendar()" title="Calendario">&#128198;</button>
                 <button class="btn btn-ghost btn-sm" id="theme-toggle" onclick="toggleTheme()" title="Alternar tema">&#127763;</button>
                 <div class="stat-pill">
                     <span class="num" id="stat-items">0</span>
@@ -4090,6 +4187,133 @@ renderPieChart('dash-chart-pie', cats);
             downloadFile(csv, filename, 'text/csv;charset=utf-8;');
         }
 
+        // ===== CLOCK / CALCULATOR / CALENDAR =====
+        function startClock() {
+            const el = document.getElementById('header-clock');
+            if (!el) return;
+            function tick() {
+                const n = new Date();
+                const p = x => String(x).padStart(2, '0');
+                const hms = p(n.getHours()) + ':' + p(n.getMinutes()) + '<small style="opacity:.65">:' + p(n.getSeconds()) + '</small>';
+                const dat = n.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
+                el.innerHTML = '<span class="time">' + hms + '</span><span class="date">' + dat + '</span>';
+            }
+            tick();
+            setInterval(tick, 1000);
+        }
+
+        let calcExpr = '';
+
+        function openCalculator() {
+            const keys = ['C', '+/-', '%', '÷', '7', '8', '9', '×', '4', '5', '6', '−', '1', '2', '3', '+', '0', '.', '⌫', '='];
+            const grid = keys.map(k => {
+                const cls = ['÷', '×', '−', '+', '='].indexOf(k) >= 0 ? 'calc-op' : (k === 'C' ? 'calc-clear' : '');
+                const ev = k === "÷" ? '÷' : (k === '×' ? '×' : (k === '−' ? '−' : k === '=' ? '=' : k));
+                return '<button type="button" class="calc-btn ' + cls + '" onclick="calcPress(' + "'" + ev + "'" + ')">' + k + '</button>';
+            }).join('');
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#129518; Calculadora</h2>
+                <div class="calc-wrap">
+                    <div class="calc-screen" id="calc-screen">0</div>
+                    <div class="calc-grid">${grid}</div>
+                </div>`;
+            calcExpr = '';
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function calcExprEval(expr) {
+            const e = String(expr).replace(/÷/g, '/').replace(/×/g, '*').replace(/−/g, '-');
+            if (!/^[\d.+\-*/\s]+$/.test(e) || /[\+\-*/][\+\-*/]/.test(e)) throw new Error('syntax');
+            return Function('"use strict"; return (' + e + ')')();
+        }
+
+        function calcPress(k) {
+            const scr = document.getElementById('calc-screen');
+            if (!scr) return;
+            if (k === 'C') { calcExpr = ''; scr.textContent = '0'; return; }
+            if (k === '⌫') { calcExpr = calcExpr.slice(0, -1); scr.textContent = calcExpr || '0'; return; }
+            if (k === '=') {
+                if (!calcExpr) return;
+                try { const res = calcExprEval(calcExpr); scr.textContent = res; calcExpr = String(res); }
+                catch (e) { scr.textContent = 'Erro'; calcExpr = ''; }
+                return;
+            }
+            if (k === '+/-') {
+                calcExpr = calcExpr.startsWith('-') ? calcExpr.slice(1) : (calcExpr ? '-' + calcExpr : '');
+                scr.textContent = calcExpr || '0';
+                return;
+            }
+            if (k === '%') {
+                if (!calcExpr) return;
+                try { calcExpr = String(calcExprEval(calcExpr) / 100); scr.textContent = calcExpr; }
+                catch (e) { scr.textContent = 'Erro'; calcExpr = ''; }
+                return;
+            }
+            const ops = ['÷', '×', '−', '+'];
+            const last = calcExpr.slice(-1);
+            if (ops.indexOf(k) >= 0) {
+                if (ops.indexOf(last) >= 0) calcExpr = calcExpr.slice(0, -1);
+                calcExpr += k;
+            } else {
+                calcExpr += k;
+            }
+            scr.textContent = calcExpr;
+        }
+
+        let calYear = 0, calMonth = 0;
+
+        function openCalendar() {
+            const n = new Date();
+            calYear = n.getFullYear();
+            calMonth = n.getMonth();
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const months = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const p = n => String(n).padStart(2, '0');
+            const mk = calYear + '-' + p(calMonth + 1);
+            const first = new Date(calYear, calMonth, 1);
+            const startWeek = (first.getDay() + 6) % 7;
+            const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            const today = new Date();
+            const monthRents = rentals.filter(r => r.date && r.date.startsWith(mk) && r.status !== 'cancelado');
+            const totalMonth = monthRents.reduce((s, r) => s + (r.totalValue || 0), 0);
+
+            let cells = '';
+            for (let i = 0; i < startWeek; i++) cells += '<div class="cal-cell cal-empty"></div>';
+            for (let d = 1; d <= daysInMonth; d++) {
+                const key = mk + '-' + p(d);
+                const evs = monthRents.filter(r => r.date === key);
+                const isToday = today.getFullYear() === calYear && today.getMonth() === calMonth && today.getDate() === d;
+                const has = evs.length > 0;
+                const title = has ? ' title="' + evs.map(e => e.eventName + ': ' + fmtBRL(e.totalValue)).join(' | ').replace(/"/g, '&quot;') + '"' : '';
+                const click = has ? ' onclick="closeModal(); viewRental(' + evs[0].id + ')"' : '';
+                cells += '<div class="cal-cell' + (isToday ? ' cal-today' : '') + (has ? ' cal-has' : '') + '"' + title + click + '>' + d + (has ? '<div class="cal-dot"></div>' : '') + '</div>';
+            }
+
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#128198; Calendario</h2>
+                <div class="cal-head">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="calMove(-1)">&#9664;</button>
+                    <div class="cal-title">${months[calMonth]} ${calYear}</div>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="calMove(1)">&#9654;</button>
+                </div>
+                <div class="cal-grid">
+                    ${['Seg','Ter','Qua','Qui','Sex','Sab','Dom'].map(d => '<div class="cal-cell cal-dayname">' + d + '</div>').join('')}
+                    ${cells}
+                </div>
+                <div class="cal-total">Receita do mes: <strong>${fmtBRL(totalMonth)}</strong> &bull; <strong>${monthRents.length}</strong> eventos</div>`;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function calMove(d) {
+            calMonth += d;
+            if (calMonth < 0) { calMonth = 11; calYear--; }
+            if (calMonth > 11) { calMonth = 0; calYear++; }
+            renderCalendar();
+        }
+
         // ===== INIT =====
         applyTitle();
         applyTheme();
@@ -4100,6 +4324,7 @@ renderPieChart('dash-chart-pie', cats);
         renderDashboard();
         updateStats();
         fillClientList();
+        startClock();
     </script>
 </body>
 </html>
