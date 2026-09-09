@@ -1313,6 +1313,13 @@
             cursor: pointer; display: block; border: 1px solid var(--border, rgba(255,255,255,0.12));
         }
         .photo-empty { opacity: 0.45; }
+        .eq-photo-slot { display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap; background:var(--panel-bg, rgba(255,255,255,0.04)); border:1px solid var(--border, rgba(255,255,255,0.12)); border-radius:8px; padding:6px; }
+        .eq-photo-slot input[type=url] { flex:1; min-width:140px; }
+        .eq-photo-slot input[type=file] { max-width:180px; }
+        .eq-photo-slot .slot-preview { height:46px; max-width:70px; object-fit:cover; border-radius:6px; display:none; }
+        .ee-photo-item { display:inline-flex; align-items:center; gap:4px; margin:4px; position:relative; }
+        .ee-photo-item img { height:56px; width:56px; object-fit:cover; border-radius:8px; }
+        .ee-photo-item button { position:absolute; top:-8px; right:-8px; border-radius:50%; min-width:22px; height:22px; padding:0; font-size:0.7rem; }
     </style>
 </head>
 <body>
@@ -1546,17 +1553,13 @@
                                 <label>Observacoes</label>
                                 <input type="text" id="eq-notes" placeholder="Informacoes adicionais...">
                             </div>
-                            <div class="form-group">
-                                <label>Foto (via internet)</label>
-                                <input type="url" id="eq-photo-url" placeholder="https://... URL da imagem" oninput="previewEqPhoto()">
-                            </div>
-                            <div class="form-group">
-                                <label>Foto (do PC)</label>
-                                <input type="file" id="eq-photo-file" accept="image/*" onchange="previewEqPhoto()">
-                            </div>
                             <div class="form-group" style="grid-column: span 2;">
-                                <img id="eq-photo-preview" alt="Preview da foto" style="display:none;max-height:150px;max-width:200px;border-radius:8px;object-fit:cover;">
-                                <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:6px;">Preencha um dos dois. A foto via PC e redimensionada automaticamente.</p>
+                                <label>Fotos (no minimo 3)</label>
+                                <div id="eq-photo-slots"></div>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-ghost btn-sm" onclick="addEqPhotoSlot()">&#43; Adicionar outra foto</button>
+                                </div>
+                                <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:6px;">Fotos via internet (URL) ou do PC (redimensionadas automaticamente).</p>
                             </div>
                         </div>
                         <div class="btn-group">
@@ -2300,6 +2303,9 @@
 
         let editingRentalId = null;
         let editingEqId = null;
+        let editingEqBackup = null;
+        let photoViewList = [];
+        let photoViewIdx = 0;
         let confirmDel = null;
         let lastImportFile = null;
         let lastImportInput = null;
@@ -2501,48 +2507,40 @@
         });
 
         // ===== INVENTORY =====
-        function addEquipment(e) {
-            e.preventDefault();
-            const eq = {
-                id: Date.now(),
-                name: document.getElementById('eq-name').value.trim(),
-                category: document.getElementById('eq-category').value,
-                qty: parseInt(document.getElementById('eq-qty').value),
-                value: parseFloat(document.getElementById('eq-value').value),
-                brand: document.getElementById('eq-brand').value.trim(),
-                status: document.getElementById('eq-status').value,
-                supplier: document.getElementById('eq-supplier').value,
-                notes: document.getElementById('eq-notes').value.trim(),
-                available: parseInt(document.getElementById('eq-qty').value)
-            };
-            const url = document.getElementById('eq-photo-url').value.trim();
-            const file = document.getElementById('eq-photo-file').files[0];
-            if (file) {
-                processEqFile(file, function (dataUrl) {
-                    eq.photo = dataUrl;
-                    finalizeAddEquipment(eq);
-                });
-            } else {
-                if (url) eq.photo = url;
-                finalizeAddEquipment(eq);
-            }
+        function eqPhotoSlotHTML() {
+            return `
+                <div class="eq-photo-slot">
+                    <input type="url" placeholder="https://... URL da foto" oninput="previewEqPhotoSlot(this)">
+                    <input type="file" accept="image/*" onchange="previewEqPhotoSlot(this)">
+                    <button type="button" class="btn btn-danger-ghost btn-sm" onclick="removeEqPhotoSlot(this)">&#10005;</button>
+                    <img class="slot-preview" alt="">
+                </div>`;
         }
 
-        function finalizeAddEquipment(eq) {
-            inventory.push(eq);
-            save();
-            dbInsert('inventory', eq);
-            document.getElementById('form-add-equipment').reset();
-            document.getElementById('eq-qty').value = 1;
-            document.getElementById('eq-photo-preview').style.display = 'none';
-            renderInventory();
-            updateStats();
+        function initEquipmentPhotoSlots() {
+            const c = document.getElementById('eq-photo-slots');
+            if (!c || c.children.length) return;
+            c.innerHTML = eqPhotoSlotHTML() + eqPhotoSlotHTML() + eqPhotoSlotHTML();
         }
 
-        function previewEqPhoto() {
-            const img = document.getElementById('eq-photo-preview');
-            const url = document.getElementById('eq-photo-url').value.trim();
-            const file = document.getElementById('eq-photo-file').files[0];
+        function addEqPhotoSlot() {
+            const c = document.getElementById('eq-photo-slots');
+            if (!c) return;
+            if (c.children.length >= 8) { appAlert('Maximo de 8 fotos por produto.'); return; }
+            c.insertAdjacentHTML('beforeend', eqPhotoSlotHTML());
+        }
+
+        function removeEqPhotoSlot(btn) {
+            const c = document.getElementById('eq-photo-slots');
+            if (!c || c.children.length <= 1) return;
+            btn.closest('.eq-photo-slot').remove();
+        }
+
+        function previewEqPhotoSlot(el) {
+            const slot = el.closest('.eq-photo-slot');
+            const img = slot.querySelector('.slot-preview');
+            const url = slot.querySelector('input[type=url]').value.trim();
+            const file = slot.querySelector('input[type=file]').files[0];
             if (file) {
                 const r = new FileReader();
                 r.onload = function () { img.src = r.result; img.style.display = 'block'; };
@@ -2555,6 +2553,54 @@
                 img.removeAttribute('src');
                 img.style.display = 'none';
             }
+        }
+
+        function collectEquipmentPhotos(slots, cb) {
+            const photos = [];
+            let i = 0;
+            function next() {
+                if (i >= slots.length) { cb(photos.filter(Boolean)); return; }
+                if (slots[i].file) {
+                    processEqFile(slots[i].file, function (dataUrl) { photos.push(dataUrl); i++; next(); });
+                } else {
+                    photos.push(slots[i].url || ''); i++; next();
+                }
+            }
+            next();
+        }
+
+        function addEquipment(e) {
+            e.preventDefault();
+            const slots = Array.prototype.map.call(document.querySelectorAll('#eq-photo-slots .eq-photo-slot'), function (s) {
+                return { url: s.querySelector('input[type=url]').value.trim(), file: s.querySelector('input[type=file]').files[0] };
+            });
+            collectEquipmentPhotos(slots, function (photos) {
+                const eq = {
+                    id: Date.now(),
+                    name: document.getElementById('eq-name').value.trim(),
+                    category: document.getElementById('eq-category').value,
+                    qty: parseInt(document.getElementById('eq-qty').value),
+                    value: parseFloat(document.getElementById('eq-value').value),
+                    brand: document.getElementById('eq-brand').value.trim(),
+                    status: document.getElementById('eq-status').value,
+                    supplier: document.getElementById('eq-supplier').value,
+                    notes: document.getElementById('eq-notes').value.trim(),
+                    available: parseInt(document.getElementById('eq-qty').value)
+                };
+                if (photos.length) { eq.photos = photos; eq.photo = photos[0]; }
+                finalizeAddEquipment(eq);
+            });
+        }
+
+        function finalizeAddEquipment(eq) {
+            inventory.push(eq);
+            save();
+            dbInsert('inventory', eq);
+            document.getElementById('form-add-equipment').reset();
+            document.getElementById('eq-qty').value = 1;
+            initEquipmentPhotoSlots();
+            renderInventory();
+            updateStats();
         }
 
         function processEqFile(file, cb) {
@@ -2580,10 +2626,35 @@
 
         function viewPhoto(id) {
             const eq = inventory.find(e => e.id === id);
-            if (!eq || !eq.photo) return;
-            if (eq.photo.indexOf('http') === 0) { window.open(eq.photo, '_blank'); return; }
-            document.getElementById('modal-content').innerHTML = `<img src="${eq.photo}" alt="" style="width:100%;max-height:75vh;object-fit:contain;border-radius:8px;">`;
+            if (!eq) return;
+            const photos = (eq.photos && eq.photos.length ? eq.photos : (eq.photo ? [eq.photo] : []));
+            if (!photos.length) return;
+            if (photos.length === 1 && photos[0].indexOf('http') === 0) { window.open(photos[0], '_blank'); return; }
+            photoViewList = photos;
+            photoViewIdx = 0;
+            renderPhotoView();
             document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function renderPhotoView() {
+            const el = document.getElementById('modal-content');
+            const p = photoViewList[photoViewIdx] || '';
+            const isUrl = p.indexOf('http') === 0;
+            el.innerHTML = `
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                    <button class="btn btn-ghost btn-sm" onclick="photoMove(-1)">&#9664;</button>
+                    <span style="flex:1;text-align:center;">Foto ${photoViewIdx + 1} de ${photoViewList.length}</span>
+                    <button class="btn btn-ghost btn-sm" onclick="photoMove(1)">&#9654;</button>
+                </div>
+                ${isUrl ? '<a href="' + escAttr(p) + '" target="_blank" style="display:block;">' : ''}
+                <img src="${escAttr(p)}" alt="" style="width:100%;max-height:70vh;object-fit:contain;border-radius:8px;">
+                ${isUrl ? '</a>' : ''}`;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function photoMove(d) {
+            photoViewIdx = (photoViewIdx + d + photoViewList.length) % photoViewList.length;
+            renderPhotoView();
         }
 
         function doDeleteEquipment(id) {
@@ -2613,7 +2684,22 @@
                             </select>
                         </div>
                         <div class="form-group"><label>Fornecedor (opcional)</label><select id="ee-supplier"><option value="">Nenhum</option>${suppliers.map(s => `<option value="${escAttr(s.name)}" ${eq.supplier === s.name ? 'selected' : ''}>${escAttr(s.name)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Foto (URL)</label><input type="text" id="ee-photo" value="${escAttr(eq.photo || '')}" placeholder="https://... ou x para remover"></div>
+                        <div class="form-group" style="grid-column: span 2;"><label>Fotos</label>
+                            <div id="ee-photo-gallery">${(function () {
+                                const arr = (eq.photos && eq.photos.length ? eq.photos : (eq.photo ? [eq.photo] : []));
+                                if (!arr.length) return '<span style="color:var(--text-secondary);font-size:0.8rem;">Sem fotos</span>';
+                                return arr.map((p, i) => '<div class="ee-photo-item">' +
+                                    (p.indexOf('http') === 0 ? '<a href="' + escAttr(p) + '" target="_blank">' : '') +
+                                    '<img src="' + escAttr(p) + '" alt="Foto ' + (i + 1) + '">' +
+                                    (p.indexOf('http') === 0 ? '</a>' : '') +
+                                    '<button type="button" class="btn btn-danger-ghost btn-sm" onclick="removeEditPhoto(' + i + ')">&#10005;</button></div>').join('');
+                            })()}</div>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+                                <input type="url" id="ee-photo-add" placeholder="URL de nova foto" style="flex:1;min-width:140px;">
+                                <input type="file" id="ee-photo-file" accept="image/*">
+                            </div>
+                            <p style="font-size:0.78rem;color:var(--text-secondary);margin-top:4px;">Para remover, use o X. Para adicionar, informe a URL ou o arquivo e clique em Salvar.</p>
+                        </div>
                     </div>
                     <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
                         <button type="button" class="btn btn-ghost" onclick="cancelInlineEdit()">Cancelar</button>
@@ -2627,6 +2713,7 @@
             const eq = inventory.find(e => e.id === id);
             if (!eq) return;
             editingEqId = id;
+            editingEqBackup = { name: eq.name, category: eq.category, qty: eq.qty, available: eq.available, value: eq.value, brand: eq.brand, status: eq.status, supplier: eq.supplier, notes: eq.notes, photo: eq.photo, photos: (eq.photos || []).slice() };
             renderInventory();
         }
 
@@ -2641,12 +2728,37 @@
             eq.brand = document.getElementById('ee-brand').value.trim();
             eq.status = document.getElementById('ee-status').value;
             eq.supplier = document.getElementById('ee-supplier').value;
-            const ph = document.getElementById('ee-photo').value.trim();
-            if (ph.toLowerCase() === 'x') eq.photo = '';
-            else if (ph) eq.photo = ph;
-            editingEqId = null;
-            save(); renderInventory(); updateStats(); refreshCurrentPage();
-            dbUpdate('inventory', eq);
+            const addUrl = (document.getElementById('ee-photo-add').value || '').trim();
+            const addFile = document.getElementById('ee-photo-file').files[0];
+            const finish = function () {
+                eq.photos = (eq.photos && eq.photos.length ? eq.photos : (eq.photo ? [eq.photo] : []));
+                eq.photo = eq.photos.length ? eq.photos[0] : '';
+                editingEqId = null;
+                editingEqBackup = null;
+                save(); renderInventory(); updateStats(); refreshCurrentPage();
+                dbUpdate('inventory', eq);
+            };
+            if (addFile) {
+                processEqFile(addFile, function (dataUrl) {
+                    eq.photos = eq.photos || [];
+                    eq.photos.push(dataUrl);
+                    finish();
+                });
+            } else {
+                if (addUrl) { eq.photos = eq.photos || []; eq.photos.push(addUrl); }
+                finish();
+            }
+        }
+
+        function removeEditPhoto(i) {
+            const eq = inventory.find(e => e.id === editingEqId);
+            if (!eq) return;
+            let arr = (eq.photos && eq.photos.length ? eq.photos : (eq.photo ? [eq.photo] : []));
+            arr.splice(i, 1);
+            eq.photos = arr;
+            if (eq.photos.length) eq.photo = eq.photos[0];
+            else eq.photo = '';
+            renderInventory();
         }
 
         function renderInventory() {
@@ -2685,7 +2797,7 @@
                 }
                 return `
                 <tr>
-                    <td>${eq.photo ? `<img src="${escAttr(eq.photo)}" class="photo-thumb" alt="" onclick="viewPhoto(${eq.id})">` : '<span class="photo-thumb photo-empty">&#128247;</span>'}</td>
+                    <td>${(eq.photo || (eq.photos && eq.photos[0])) ? `<img src="${escAttr(eq.photo || (eq.photos && eq.photos[0]))}" class="photo-thumb" alt="" onclick="viewPhoto(${eq.id})">` : '<span class="photo-thumb photo-empty">&#128247;</span>'}</td>
                     <td class="td-name">${eq.name}</td>
                     <td><span class="badge badge-accent">${eq.category}</span></td>
                     <td>${eq.qty}</td>
@@ -2945,8 +3057,18 @@
         }
 
         function cancelInlineEdit() {
+            if (editingEqId !== null && editingEqBackup) {
+                const eq = inventory.find(e => e.id === editingEqId);
+                if (eq) {
+                    const b = editingEqBackup;
+                    eq.name = b.name; eq.category = b.category; eq.qty = b.qty; eq.available = b.available;
+                    eq.value = b.value; eq.brand = b.brand; eq.status = b.status; eq.supplier = b.supplier;
+                    eq.notes = b.notes; eq.photo = b.photo; eq.photos = (b.photos || []).slice();
+                }
+            }
             editingRentalId = null;
             editingEqId = null;
+            editingEqBackup = null;
             refreshCurrentPage();
         }
 
@@ -4770,6 +4892,7 @@ renderPieChart('dash-chart-pie', cats);
         applyCustomStyle();
         initDb();
         updateDbStatus();
+        initEquipmentPhotoSlots();
         if (dbOnline) { (async () => {
             const loaded = await loadFromDb(true);
             if (!loaded && (inventory.length || rentals.length || clients.length || suppliers.length)) await migrateLocalToDb();
