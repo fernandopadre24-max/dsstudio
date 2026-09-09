@@ -182,50 +182,74 @@
             font-weight: 400;
         }
 
-        /* ===== NAV ===== */
-        .nav {
-            padding: 0 30px;
+        /* ===== LAYOUT + NAV LATERAL ===== */
+        .layout {
             display: flex;
-            gap: 4px;
-            background: var(--nav-bg);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 83px;
-            z-index: 99;
+            align-items: stretch;
         }
 
-        .nav button {
+        .side-nav {
+            width: 230px;
+            flex: 0 0 230px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border);
+            position: sticky;
+            top: 83px;
+            height: calc(100vh - 83px);
+            z-index: 99;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 20px 14px;
+            overflow-y: auto;
+        }
+
+        .side-nav button {
             background: none;
             border: none;
             color: var(--text-secondary);
-            padding: 16px 22px;
+            padding: 13px 16px;
             font-size: 0.88rem;
             font-family: inherit;
             font-weight: 500;
             cursor: pointer;
-            border-bottom: 2px solid transparent;
+            border-radius: 10px;
+            border-left: 3px solid transparent;
             transition: all 0.3s;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            text-align: left;
         }
 
-        .nav button:hover {
+        .side-nav button:hover {
             color: var(--text);
+            background: var(--hover-bg);
         }
 
-        .nav button.active {
+        .side-nav button.active {
             color: var(--accent-2);
-            border-bottom-color: var(--accent-2);
+            background: var(--bg-glass);
+            border-left-color: var(--accent-2);
         }
 
-        .nav button .nav-icon {
+        .side-nav button .nav-icon {
             font-size: 1.1rem;
+        }
+
+        .side-nav .nav-footer {
+            margin-top: auto;
+            padding: 10px 14px;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
         }
 
         /* ===== CONTAINER ===== */
         .container {
+            flex: 1;
+            min-width: 0;
+            width: 100%;
             max-width: 1250px;
             margin: 0 auto;
             padding: 30px;
@@ -906,8 +930,11 @@
             .header-stats { width: 100%; justify-content: center; }
             .container { padding: 16px; }
             .dash-grid { grid-template-columns: 1fr; }
-            .nav { overflow-x: auto; padding: 0 10px; }
-            .nav button { padding: 14px 16px; font-size: 0.8rem; white-space: nowrap; }
+            .layout { flex-direction: column; }
+            .side-nav { width: 100%; flex: none; flex-direction: row; overflow-x: auto; height: auto; position: static; padding: 10px; }
+            .side-nav button { padding: 12px 14px; font-size: 0.8rem; white-space: nowrap; border-left: none; border-bottom: 2px solid transparent; border-radius: 8px; }
+            .side-nav button.active { border-left-color: transparent; border-bottom-color: var(--accent-2); }
+            .side-nav .nav-footer { display: none; }
             .form-grid { grid-template-columns: 1fr; }
             .eq-selector { grid-template-columns: 1fr; }
         }
@@ -944,8 +971,10 @@
             </div>
         </header>
 
+        <!-- LAYOUT -->
+        <div class="layout">
         <!-- NAV -->
-        <nav class="nav" id="main-nav">
+        <nav class="side-nav" id="main-nav">
             <button class="active" data-page="dashboard">
                 <span class="nav-icon">&#128200;</span> Painel
             </button>
@@ -961,6 +990,13 @@
             <button data-page="events">
                 <span class="nav-icon">&#127751;</span> Eventos
             </button>
+            <button data-page="reports">
+                <span class="nav-icon">&#128202;</span> Relatorio
+            </button>
+            <button data-page="settings">
+                <span class="nav-icon">&#9881;</span> Configuracao
+            </button>
+            <div class="nav-footer">Gestao de Som</div>
         </nav>
 
         <div class="container">
@@ -1443,6 +1479,119 @@
                     </div>
                 </div>
             </div>
+
+            <!-- REPORTS -->
+            <div id="page-reports" class="page">
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128202;</div> Relatorio
+                    </div>
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label>Mes</label>
+                            <input type="month" id="report-month" onchange="renderReports()">
+                        </div>
+                        <div class="form-group" style="align-self:flex-end;">
+                            <button type="button" class="btn btn-ghost" onclick="exportCSV('inventory')">&#128196; Exportar Estoque</button>
+                        </div>
+                    </div>
+                    <div class="stats-row" id="report-stats"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128197;</div> Faturamento por Mes
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mes</th>
+                                    <th>Eventos</th>
+                                    <th>Itens</th>
+                                    <th>Receita (R$)</th>
+                                    <th>Recebido (R$)</th>
+                                    <th>Em Aberto (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-monthly"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128230;</div> Equipamentos Mais Alugados
+                    </div>
+                    <div class="summary-box">
+                        <div id="report-top-equip"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128101;</div> Top Clientes por Faturamento
+                    </div>
+                    <div class="summary-box">
+                        <div id="report-top-clients"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS -->
+            <div id="page-settings" class="page">
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#127912;</div> Aparencia
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Titulo do sistema</label>
+                            <input type="text" id="settings-title" placeholder="Ex: DS Studio Som">
+                        </div>
+                        <div class="form-group">
+                            <label>Tema</label>
+                            <select id="settings-theme" onchange="setSettingsTheme(this.value)">
+                                <option value="dark">Escuro</option>
+                                <option value="light">Claro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-accent" onclick="saveSettingsTitle()">&#10003; Salvar Titulo</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128187;</div> Banco de Dados (Nuvem)
+                    </div>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">
+                        Status: <span id="db-status-settings" class="badge badge-yellow">verificando...</span>
+                    </p>
+                    <div class="btn-group" style="flex-wrap:wrap;">
+                        <button type="button" class="btn btn-ghost" onclick="openDbSettings()">&#128295; Configurar conexao</button>
+                        <button type="button" class="btn btn-ghost" onclick="syncNow()">&#128260; Sincronizar com a nuvem</button>
+                        <button type="button" class="btn btn-danger-ghost" onclick="pushLocalToDb()">&#128640; Enviar dados locais para a nuvem</button>
+                    </div>
+                    <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:8px;">"Enviar dados locais" substitui o banco na nuvem pelos dados deste aparelho.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128190;</div> Backup e Dados
+                    </div>
+                    <div class="btn-group" style="flex-wrap:wrap;">
+                        <button type="button" class="btn btn-ghost" onclick="exportBackup()">&#128190; Exportar backup completo</button>
+                        <button type="button" class="btn btn-ghost" onclick="document.getElementById('file-import-settings').click()">&#128225; Importar backup</button>
+                        <button type="button" class="btn btn-ghost" onclick="exportCSV('inventory')">&#128196; Estoque (Excel)</button>
+                        <button type="button" class="btn btn-ghost" onclick="exportCSV('clients')">&#128196; Clientes (Excel)</button>
+                        <button type="button" class="btn btn-ghost" onclick="exportCSV('rentals')">&#128196; Alugueis (Excel)</button>
+                        <input type="file" id="file-import-settings" accept=".json" style="display:none;" onchange="importBackup(this)">
+                    </div>
+                </div>
+            </div>
+        </div>
         </div>
     </div>
 
@@ -1618,7 +1767,7 @@
             const page = btn.dataset.page;
 
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.side-nav button').forEach(b => b.classList.remove('active'));
 
             document.getElementById('page-' + page).classList.add('active');
             btn.classList.add('active');
@@ -1628,6 +1777,8 @@
             if (page === 'rentals') { renderRentals(); renderEquipmentSelector(); }
             if (page === 'clients') renderClients();
             if (page === 'events') renderEvents();
+            if (page === 'reports') renderReports();
+            if (page === 'settings') renderSettings();
         });
 
         // ===== INVENTORY =====
@@ -2614,6 +2765,119 @@
             const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
             localStorage.setItem('sc_theme', theme);
             applyTheme();
+        }
+
+        // ===== REPORTS =====
+        function renderReports() {
+            const month = document.getElementById('report-month').value;
+            const scope = rentals.filter(r => r.status !== 'cancelado' && (!month || (r.date && r.date.startsWith(month))));
+            const totalRev = scope.reduce((s, r) => s + (r.totalValue || 0), 0);
+            const received = scope.reduce((s, r) => s + (r.deposit || 0), 0);
+            const open = Math.max(0, totalRev - received);
+            const items = scope.reduce((s, r) => s + r.equipment.reduce((ss, e) => ss + (e.qty || 0), 0), 0);
+
+            document.getElementById('report-stats').innerHTML = `
+                <div class="stat-chip"><div class="num">${scope.length}</div><div class="lbl">Eventos</div></div>
+                <div class="stat-chip"><div class="num">${items}</div><div class="lbl">Itens Alugados</div></div>
+                <div class="stat-chip"><div class="num">${fmtBRL(totalRev)}</div><div class="lbl">Receita Total</div></div>
+                <div class="stat-chip"><div class="num" style="color:var(--green)">${fmtBRL(received)}</div><div class="lbl">Recebido</div></div>
+                <div class="stat-chip"><div class="num" style="color:${open > 0 ? 'var(--red)' : 'var(--green)'}">${fmtBRL(open)}</div><div class="lbl">Em Aberto</div></div>
+            `;
+
+            const byMonth = {};
+            rentals.forEach(r => {
+                if (r.status === 'cancelado' || !r.date) return;
+                const mk = r.date.slice(0, 7);
+                if (!byMonth[mk]) byMonth[mk] = { ev: 0, it: 0, rec: 0, recv: 0 };
+                const m = byMonth[mk];
+                m.ev++;
+                m.it += r.equipment.reduce((s, e) => s + (e.qty || 0), 0);
+                m.rec += r.totalValue || 0;
+                m.recv += r.deposit || 0;
+            });
+            const monthNames = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            const months = Object.keys(byMonth).sort().reverse();
+            document.getElementById('report-monthly').innerHTML = months.length ? months.map(mk => {
+                const mm = byMonth[mk];
+                const openM = Math.max(0, mm.rec - mm.recv);
+                const sel = month === mk ? ' style="background:var(--bg-glass);"' : '';
+                const [y, mo] = mk.split('-');
+                return `<tr${sel}>
+                    <td class="td-name">${monthNames[parseInt(mo)]}/${y}</td><td>${mm.ev}</td><td>${mm.it}</td>
+                    <td>${fmtBRL(mm.rec)}</td><td style="color:var(--green)">${fmtBRL(mm.recv)}</td>
+                    <td style="color:${openM > 0 ? 'var(--red)' : 'var(--green)'}">${fmtBRL(openM)}</td>
+                </tr>`;
+            }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:18px;">Sem alugueis registrados</td></tr>';
+
+            const eqMap = {};
+            rentals.forEach(r => {
+                if (r.status === 'cancelado') return;
+                r.equipment.forEach(e => {
+                    if (!eqMap[e.name]) eqMap[e.name] = { qty: 0, rev: 0 };
+                    eqMap[e.name].qty += e.qty || 0;
+                    eqMap[e.name].rev += (e.qty || 0) * (e.unitValue || 0);
+                });
+            });
+            const topEq = Object.keys(eqMap).map(n => ({ name: n, qty: eqMap[n].qty, rev: eqMap[n].rev })).sort((a, b) => b.qty - a.qty).slice(0, 10);
+            document.getElementById('report-top-equip').innerHTML = topEq.length ? topEq.map((e, i) => `
+                <div class="summary-row"><span>${i + 1}. ${escAttr(e.name)}</span><span>${e.qty}x &bull; ${fmtBRL(e.rev)}</span></div>
+            `).join('') : '<p style="color:var(--text-secondary);text-align:center;padding:12px;">Sem dados</p>';
+
+            const clMap = {};
+            rentals.forEach(r => {
+                if (r.status === 'cancelado') return;
+                if (!clMap[r.client]) clMap[r.client] = { total: 0, rec: 0 };
+                clMap[r.client].total += r.totalValue || 0;
+                clMap[r.client].rec += r.deposit || 0;
+            });
+            const topCl = Object.keys(clMap).map(n => ({ name: n, total: clMap[n].total, rec: clMap[n].rec })).sort((a, b) => b.total - a.total).slice(0, 10);
+            document.getElementById('report-top-clients').innerHTML = topCl.length ? topCl.map((c, i) => `
+                <div class="summary-row"><span>${i + 1}. ${escAttr(c.name)}</span><span>${fmtBRL(c.total)} &bull; em aberto ${fmtBRL(Math.max(0, c.total - c.rec))}</span></div>
+            `).join('') : '<p style="color:var(--text-secondary);text-align:center;padding:12px;">Sem dados</p>';
+        }
+
+        // ===== SETTINGS =====
+        function renderSettings() {
+            const t = document.getElementById('settings-title');
+            if (t) t.value = localStorage.getItem('sc_title') || '';
+            const th = document.getElementById('settings-theme');
+            if (th) th.value = document.documentElement.getAttribute('data-theme') || 'dark';
+            const st = document.getElementById('db-status-settings');
+            if (st) {
+                st.textContent = dbOnline ? 'CONECTADO' : 'desligado (dados locais)';
+                st.className = 'badge ' + (dbOnline ? 'badge-green' : 'badge-yellow');
+            }
+        }
+
+        function saveSettingsTitle() {
+            localStorage.setItem('sc_title', document.getElementById('settings-title').value.trim());
+            applyTitle();
+            alert('Titulo salvo!');
+        }
+
+        function setSettingsTheme(v) {
+            localStorage.setItem('sc_theme', v);
+            applyTheme();
+        }
+
+        function syncNow() {
+            if (!dbOnline) { alert('Banco nao configurado. Use "Configurar conexao".'); return; }
+            (async () => {
+                const loaded = await loadFromDb();
+                if (loaded) { renderDashboard(); updateStats(); renderSettings(); alert('Dados da nuvem carregados neste aparelho.'); }
+                else alert('Nuvem vazia. Use "Enviar dados locais" para subir seus dados.');
+            })();
+        }
+
+        function pushLocalToDb() {
+            if (!dbOnline) { alert('Banco nao configurado. Use "Configurar conexao".'); return; }
+            if (!confirm('Substituir TODO o banco na nuvem pelos dados deste aparelho?\nOs dados da nuvem serao apagados.')) return;
+            (async () => {
+                await deleteAndRestoreDb();
+                await migrateLocalToDb();
+                renderSettings();
+                alert('Dados enviados para a nuvem!');
+            })();
         }
 
         // ===== BACKUP =====
