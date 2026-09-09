@@ -2999,13 +2999,15 @@ initEquipmentPhotoSlots();
             }
             c.innerHTML = team.map(s => {
                 const svcHint = (s.services || []).map(x => '&bull; ' + escAttr(x.n) + ' ' + fmtBRL(x.v)).join(' ');
+                const defVal = (s.services || []).reduce((a, x) => a + (parseFloat(x.v) || 0), 0);
                 const prev = (sel || []).find(x => x.empId === s.id);
                 const checked = !!prev;
+                const curVal = prev ? prev.value : (defVal ? defVal : '');
                 return `
                 <div class="eq-check ${checked ? 'checked' : ''}">
                     <input type="checkbox" id="${prefix}-staff-${s.id}" value="${s.id}" ${checked ? 'checked' : ''}>
                     <label for="${prefix}-staff-${s.id}">${s.photo ? '<img src="' + escAttr(s.photo) + '" class="photo-thumb" style="display:inline-block;vertical-align:middle;margin-right:6px;">' : ''}${s.code ? '<span class="badge badge-blue">' + s.code + '</span> ' : ''}${escAttr(s.name)}${svcHint ? '<small>' + svcHint + '</small>' : ''}</label>
-                    <input type="number" class="qty-input" id="${prefix}-staff-val-${s.id}" min="0" step="0.01" placeholder="Valor" value="${prev ? prev.value : ''}" ${checked ? '' : 'disabled'} onclick="event.stopPropagation()">
+                    <input type="number" class="qty-input" id="${prefix}-staff-val-${s.id}" min="0" step="0.01" placeholder="Valor" value="${curVal}" ${checked ? '' : 'disabled'} onclick="event.stopPropagation()">
                 </div>`;
             }).join('');
         }
