@@ -1906,12 +1906,19 @@
                     <form id="form-add-supplier" onsubmit="addSupplier(event)">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Nome / Empresa</label>
+                                <label>Tipo</label>
+                                <select id="sp-type" onchange="onSupplierTypeChange()">
+                                    <option value="Pessoa Fisica">Pessoa Fisica</option>
+                                    <option value="Pessoa Juridica">Pessoa Juridica</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Nome / Razao Social</label>
                                 <input type="text" id="sp-name" required placeholder="Nome do fornecedor">
                             </div>
                             <div class="form-group">
-                                <label>CNPJ</label>
-                                <input type="text" id="sp-cnpj" placeholder="00.000.000/0000-00" oninput="maskDoc(this)">
+                                <label id="sp-doc-label">CPF</label>
+                                <input type="text" id="sp-doc" placeholder="000.000.000-00" oninput="maskSupplierDoc(this)">
                             </div>
                             <div class="form-group">
                                 <label>Telefone</label>
@@ -3915,8 +3922,9 @@ renderPieChart('dash-chart-pie', cats);
             e.preventDefault();
             const sp = {
                 id: Date.now(),
+                type: document.getElementById('sp-type').value,
                 name: document.getElementById('sp-name').value.trim(),
-                cnpj: document.getElementById('sp-cnpj').value.trim(),
+                cnpj: document.getElementById('sp-doc').value.trim(),
                 phone: document.getElementById('sp-phone').value.trim(),
                 whatsapp: document.getElementById('sp-whatsapp').value.trim(),
                 email: document.getElementById('sp-email').value.trim(),
@@ -3946,6 +3954,7 @@ renderPieChart('dash-chart-pie', cats);
 
             let filtered = suppliers.filter(s => {
                 const ms = s.name.toLowerCase().includes(search) ||
+                       (s.cnpj && s.cnpj.toLowerCase().includes(search)) ||
                        (s.phone && s.phone.includes(search)) ||
                        (s.categories && s.categories.toLowerCase().includes(search));
                 const mc = !fc || s.city === fc;
@@ -4012,8 +4021,15 @@ renderPieChart('dash-chart-pie', cats);
                 <h2>&#9998; Editar Fornecedor</h2>
                 <form id="form-edit-supplier" onsubmit="saveSupplierEdits(${sp.id}); return false;">
                     <div class="form-grid">
-                        ${field('Nome / Empresa', 'edit-sp-name', sp.name || '', 'Nome do fornecedor')}
-                        ${field('CNPJ', 'edit-sp-cnpj', sp.cnpj || '', '00.000.000/0000-00')}
+                        ${field('Nome / Razao Social', 'edit-sp-name', sp.name || '', 'Nome do fornecedor')}
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="edit-sp-type">
+                                <option value="Pessoa Fisica" ${(sp.type || 'Pessoa Fisica') === 'Pessoa Fisica' ? 'selected' : ''}>Pessoa Fisica</option>
+                                <option value="Pessoa Juridica" ${sp.type === 'Pessoa Juridica' ? 'selected' : ''}>Pessoa Juridica</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label id="edit-sp-doc-label">${(sp.type || 'Pessoa Fisica') === 'Pessoa Juridica' ? 'CNPJ' : 'CPF'}</label><input type="text" id="edit-sp-doc" value="${escAttr(sp.cnpj || '')}" placeholder="${(sp.type || 'Pessoa Fisica') === 'Pessoa Juridica' ? '00.000.000/0000-00' : '000.000.000-00'}"></div>
                         ${field('Telefone', 'edit-sp-phone', sp.phone || '', '(00) 00000-0000')}
                         ${field('WhatsApp', 'edit-sp-whatsapp', sp.whatsapp || '', '(00) 00000-0000')}
                         ${field('E-mail', 'edit-sp-email', sp.email || '', 'email@exemplo.com', 'email')}
@@ -4030,10 +4046,13 @@ renderPieChart('dash-chart-pie', cats);
                     </div>
                 </form>
             `;
-            [['edit-sp-phone', maskPhone], ['edit-sp-whatsapp', maskPhone], ['edit-sp-cnpj', maskDoc]].forEach(function (p) {
+            [['edit-sp-phone', maskPhone], ['edit-sp-whatsapp', maskPhone], ['edit-sp-doc', function (el) { maskSupplierDoc(el); }]].forEach(function (p) {
                 const el = document.getElementById(p[0]);
                 if (el) el.addEventListener('input', function () { p[1](this); });
             });
+            const eSt = document.getElementById('edit-sp-type');
+            if (eSt) eSt.addEventListener('change', onEditSupplierTypeChange);
+            onEditSupplierTypeChange();
             document.getElementById('modal-bg').classList.add('active');
         }
 
@@ -4041,8 +4060,9 @@ renderPieChart('dash-chart-pie', cats);
             const sp = suppliers.find(x => x.id === id);
             if (!sp) return;
             const v = n => document.getElementById(n).value.trim();
+            sp.type = v('edit-sp-type');
             sp.name = v('edit-sp-name');
-            sp.cnpj = v('edit-sp-cnpj');
+            sp.cnpj = v('edit-sp-doc');
             sp.phone = v('edit-sp-phone');
             sp.whatsapp = v('edit-sp-whatsapp');
             sp.email = v('edit-sp-email');
@@ -4069,7 +4089,7 @@ renderPieChart('dash-chart-pie', cats);
             document.getElementById('modal-content').innerHTML = `
                 <h2>&#128666; ${escAttr(sp.name)}</h2>
                 <div class="summary-box">
-                    ${row('CNPJ', sp.cnpj)}
+                    ${row((sp.type === 'Pessoa Fisica' ? 'CPF' : 'CNPJ'), sp.cnpj)}
                     ${row('Telefone', sp.phone)}
                     ${row('WhatsApp', sp.whatsapp)}
                     ${row('E-mail', sp.email)}
@@ -4119,6 +4139,30 @@ renderPieChart('dash-chart-pie', cats);
                 else if (v.length > 3) v = v.replace(/^(\d{3})(\d{0,3})$/, '$1.$2');
             }
             el.value = v;
+        }
+
+        function onSupplierTypeChange() {
+            const elType = document.getElementById('sp-type');
+            if (!elType) return;
+            const isPj = elType.value === 'Pessoa Juridica';
+            const lbl = document.getElementById('sp-doc-label');
+            if (lbl) lbl.textContent = isPj ? 'CNPJ' : 'CPF';
+            const doc = document.getElementById('sp-doc');
+            if (doc) { doc.placeholder = isPj ? '00.000.000/0000-00' : '000.000.000-00'; maskDocType(doc, isPj); }
+        }
+
+        function maskSupplierDoc(el) {
+            maskDocType(el, !!document.getElementById('sp-type') && document.getElementById('sp-type').value === 'Pessoa Juridica');
+        }
+
+        function onEditSupplierTypeChange() {
+            const elType = document.getElementById('edit-sp-type');
+            if (!elType) return;
+            const isPj = elType.value === 'Pessoa Juridica';
+            const lbl = document.getElementById('edit-sp-doc-label');
+            if (lbl) lbl.textContent = isPj ? 'CNPJ' : 'CPF';
+            const doc = document.getElementById('edit-sp-doc');
+            if (doc) { doc.placeholder = isPj ? '00.000.000/0000-00' : '000.000.000-00'; maskDocType(doc, isPj); }
         }
 
         function onClientTypeChange() {
