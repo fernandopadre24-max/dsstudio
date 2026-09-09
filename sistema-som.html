@@ -1163,9 +1163,15 @@
                     </div>
                     <form id="form-add-rental" onsubmit="addRental(event)">
                         <div class="form-grid">
-                            <div class="form-group">
-                                <label>Nome do Cliente</label>
-                                <input type="text" id="rent-client" required list="client-list" placeholder="Digite ou selecione um cliente" oninput="fillClientFromList(this.value)">
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Cliente</label>
+                                <input type="text" id="rent-client" required list="client-list" placeholder="Digite o nome do cliente..." oninput="fillClientFromList(this.value)">
+                                <div style="display:flex;gap:8px;margin-top:8px;">
+                                    <select id="rent-client-select" onchange="selectClientFromDropdown()" style="flex:1;min-width:0;">
+                                        <option value="">Escolher cliente cadastrado...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-accent" onclick="openNewClientModal()">&#10133; Novo Cliente</button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Telefone</label>
@@ -1196,8 +1202,9 @@
                                 <input type="number" id="rent-value" min="0" step="0.01" placeholder="0.00" required>
                             </div>
                             <div class="form-group">
-                                <label>Sinal / Entrada (R$)</label>
+                                <label>Valor Recebido (R$)</label>
                                 <input type="number" id="rent-deposit" min="0" step="0.01" placeholder="0.00">
+                                <small style="color:var(--text-secondary);font-size:0.72rem;">Sinal + pagamentos ja feitos</small>
                             </div>
                             <div class="form-group">
                                 <label>Status</label>
@@ -1230,6 +1237,33 @@
 
                 <div class="card">
                     <div class="card-title">
+                        <div class="icon">&#128202;</div> Levantamento por Cliente (Contas)
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Alugueis</th>
+                                    <th>Total (R$)</th>
+                                    <th>Recebido (R$)</th>
+                                    <th>Em Aberto (R$)</th>
+                                    <th>Situacao</th>
+                                </tr>
+                            </thead>
+                            <tbody id="client-summary"></tbody>
+                            <tfoot id="client-summary-total" style="display:none;"></tfoot>
+                        </table>
+                    </div>
+                    <div id="client-summary-empty" class="empty-state" style="display:none;">
+                        <div class="empty-icon">&#128202;</div>
+                        <p>Nenhum aluguel para levantar</p>
+                    </div>
+                    <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:8px;">Clique na linha de um cliente para listar os alugueis dele abaixo. Alugueis cancelados ficam fora das contas.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
                         <div class="icon">&#128203;</div> Lista de Alugueis
                     </div>
                     <div class="search-bar">
@@ -1253,6 +1287,7 @@
                                     <th>Horario</th>
                                     <th>Material</th>
                                     <th>Valor</th>
+                                    <th>Pagamento</th>
                                     <th>Status</th>
                                     <th>Acoes</th>
                                 </tr>
@@ -1782,18 +1817,10 @@
             const clientName = document.getElementById('rent-client').value.trim();
             const clientPhone = document.getElementById('rent-phone').value.trim();
             let matchedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
-            if (!matchedClient && clientName) {
-                matchedClient = {
-                    id: Date.now(),
-                    name: clientName,
-                    phone: clientPhone,
-                    email: '',
-                    city: '',
-                    instagram: '',
-                    notes: 'Criado automaticamente via aluguel',
-                    createdAt: new Date().toISOString()
-                };
-                clients.push(matchedClient);
+            if (!matchedClient) {
+                if (!clientName) { alert('Informe ou escolha o nome do cliente.'); return; }
+                openNewClientModal(clientName, clientPhone);
+                return;
             }
             if (matchedClient) {
                 clients.find(c => c.id === matchedClient.id).lastRentDate = document.getElementById('rent-date').value;
@@ -1905,7 +1932,9 @@
                     <div class="detail-item"><label>Data</label><p>${fmtDate(r.date)}</p></div>
                     <div class="detail-item"><label>Horario</label><p>${r.timeStart}${r.timeEnd ? ' - ' + r.timeEnd : ''}</p></div>
                     <div class="detail-item"><label>Status</label><p><span class="badge ${statusBadge(r.status)}">${r.status}</span></p></div>
-                    <div class="detail-item"><label>Sinal</label><p>${fmtBRL(r.deposit)}</p></div>
+                    <div class="detail-item"><label>Pagamento</label><p>${payBadge(r)}</p></div>
+                    <div class="detail-item"><label>Recebido</label><p style="color:var(--green)">${fmtBRL(r.deposit || 0)}</p></div>
+                    <div class="detail-item"><label>Em Aberto</label><p style="color:${Math.max(0, (r.totalValue || 0) - (r.deposit || 0)) > 0 ? 'var(--red)' : 'var(--green)'}">${fmtBRL(Math.max(0, (r.totalValue || 0) - (r.deposit || 0)))}</p></div>
                 </div>
                 ${r.notes ? `<p style="margin-bottom:18px;color:var(--text-secondary);font-size:0.88rem">Observacoes: ${r.notes}</p>` : ''}
                 <div class="summary-box">
@@ -1926,6 +1955,7 @@
         });
 
         function renderRentals() {
+            renderClientSummary();
             const search = document.getElementById('search-rentals').value.toLowerCase();
             const fs = document.getElementById('filter-rental-status').value;
 
@@ -1949,9 +1979,11 @@
                     <td>${r.timeStart}${r.timeEnd ? ' - ' + r.timeEnd : ''}</td>
                     <td>${r.equipment.map(e => e.qty + 'x ' + e.name).join(', ')}</td>
                     <td><strong style="color:var(--green)">${fmtBRL(r.totalValue)}</strong></td>
+                    <td>${payBadge(r)}</td>
                     <td><span class="badge ${statusBadge(r.status)}">${r.status}</span></td>
                     <td class="action-btns">
                         <button class="btn btn-ghost btn-sm" onclick="viewRental(${r.id})" title="Detalhes">&#128065;</button>
+                        ${r.status !== 'cancelado' ? `<button class="btn btn-ghost btn-sm" onclick="payRental(${r.id})" title="Receber pagamento">&#128176;</button>` : ''}
                         ${(r.status === 'agendado' || r.status === 'em andamento') ? `
                             <button class="btn btn-green btn-sm" onclick="returnEquipment(${r.id})" title="Devolver">&#10003;</button>
                             <button class="btn btn-danger-ghost btn-sm" onclick="cancelRental(${r.id})" title="Cancelar">&#10005;</button>
@@ -1960,6 +1992,199 @@
                     </td>
                 </tr>
             `).join('');
+        }
+
+        // ===== CLIENT ACCOUNTS (pagamentos) =====
+        function payValue(r) { return r.deposit || 0; }
+
+        function payBadge(r) {
+            const v = r.totalValue || 0;
+            const rec = payValue(r);
+            if (v <= 0) return '<span class="badge badge-accent">-</span>';
+            if (rec >= v) return '<span class="badge badge-green">Pago</span>';
+            if (rec > 0) return '<span class="badge badge-accent">Parcial</span>';
+            return '<span class="badge badge-yellow">Em aberto</span>';
+        }
+
+        function payRental(id) {
+            const r = rentals.find(x => x.id === id);
+            if (!r) return;
+            const rec = prompt('Valor recebido ate agora (R$):\nSinal + pagamentos ja feitos.', r.deposit || 0);
+            if (rec === null) return;
+            const v = Math.max(0, parseFloat(String(rec).replace(',', '.')) || 0);
+            if (r.totalValue > 0 && v > r.totalValue) {
+                if (!confirm('Valor maior que o total do aluguel. Confirmar?')) return;
+            }
+            r.deposit = v;
+            save(); renderRentals(); updateStats();
+            dbUpdate('rentals', r);
+        }
+
+        function renderClientSummary() {
+            const tb = document.getElementById('client-summary');
+            if (!tb) return;
+            const empty = document.getElementById('client-summary-empty');
+            const totalRow = document.getElementById('client-summary-total');
+
+            const map = {};
+            rentals.forEach(r => {
+                if (r.status === 'cancelado') return;
+                if (!map[r.client]) map[r.client] = { qty: 0, total: 0, rec: 0, open: 0 };
+                const m = map[r.client];
+                m.qty++;
+                m.total += r.totalValue || 0;
+                m.rec += payValue(r);
+            });
+
+            const rows = Object.keys(map).map(name => {
+                const m = map[name];
+                m.open = Math.max(0, m.total - m.rec);
+                return { name: name, qty: m.qty, total: m.total, rec: m.rec, open: m.open };
+            }).sort((a, b) => (b.open - a.open) || (b.total - a.total));
+
+            if (!rows.length) {
+                tb.innerHTML = '';
+                if (empty) empty.style.display = 'block';
+                if (totalRow) totalRow.style.display = 'none';
+                return;
+            }
+            if (empty) empty.style.display = 'none';
+
+            tb.innerHTML = rows.map(m => `
+                <tr onclick="filterRentalsByClient('${m.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="cursor:pointer;${m.open > 0 ? 'border-left:3px solid var(--red);' : 'border-left:3px solid var(--green);'}">
+                    <td class="td-name">${m.name}</td>
+                    <td>${m.qty}</td>
+                    <td>${fmtBRL(m.total)}</td>
+                    <td><strong style="color:var(--green)">${fmtBRL(m.rec)}</strong></td>
+                    <td><strong style="color:${m.open > 0 ? 'var(--red)' : 'var(--green)'}">${fmtBRL(m.open)}</strong></td>
+                    <td>${m.open > 0 ? '<span class="badge badge-yellow">Deve</span>' : '<span class="badge badge-green">Em dia</span>'}</td>
+                </tr>
+            `).join('');
+
+            const t = rows.reduce((s, m) => { s.qty += m.qty; s.total += m.total; s.rec += m.rec; s.open += m.open; return s; }, { qty: 0, total: 0, rec: 0, open: 0 });
+            totalRow.style.display = '';
+            totalRow.innerHTML = `<tr>
+                <td><strong>Total Geral</strong></td>
+                <td><strong>${t.qty}</strong></td>
+                <td><strong>${fmtBRL(t.total)}</strong></td>
+                <td><strong style="color:var(--green)">${fmtBRL(t.rec)}</strong></td>
+                <td><strong style="color:${t.open > 0 ? 'var(--red)' : 'var(--green)'}">${fmtBRL(t.open)}</strong></td>
+                <td></td>
+            </tr>`;
+        }
+
+        function filterRentalsByClient(name) {
+            const inp = document.getElementById('search-rentals');
+            if (inp) inp.value = name;
+            const st = document.getElementById('filter-rental-status');
+            if (st) st.value = '';
+            renderRentals();
+            const t = document.getElementById('rentals-table');
+            if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ===== CLIENT SELECT no novo aluguel =====
+        function fillClientSelect() {
+            const el = document.getElementById('rent-client-select');
+            if (!el) return;
+            const cur = el.value;
+            const opts = clients.map(c => `<option value="${escAttr(c.name)}">${escAttr(c.name)}</option>`).join('');
+            el.innerHTML = '<option value="">Escolher cliente cadastrado...</option>' + opts;
+            el.value = cur;
+        }
+
+        function selectClientFromDropdown() {
+            const name = document.getElementById('rent-client-select').value;
+            if (!name) return;
+            document.getElementById('rent-client').value = name;
+            fillClientFromList(name);
+        }
+
+        function openNewClientModal(name, phone) {
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#10133; Cadastrar Novo Cliente</h2>
+                <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:14px;">Salve o cliente para voltar ao aluguel com ele selecionado.</p>
+                <form onsubmit="submitNewClient(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="clm-type">
+                                <option value="Pessoa Fisica">Pessoa Fisica</option>
+                                <option value="Pessoa Juridica">Pessoa Juridica</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Nome *</label>
+                            <input type="text" id="clm-name" required value="${escAttr(name || '')}" placeholder="Nome completo">
+                        </div>
+                        <div class="form-group">
+                            <label>Telefone</label>
+                            <input type="text" id="clm-phone" value="${escAttr(phone || '')}" placeholder="(00) 00000-0000" oninput="maskPhone(this)">
+                        </div>
+                        <div class="form-group">
+                            <label>WhatsApp</label>
+                            <input type="text" id="clm-whatsapp" placeholder="(00) 00000-0000" oninput="maskPhone(this)">
+                        </div>
+                        <div class="form-group">
+                            <label>E-mail</label>
+                            <input type="email" id="clm-email" placeholder="email@exemplo.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Instagram</label>
+                            <input type="text" id="clm-instagram" placeholder="@usuario">
+                        </div>
+                        <div class="form-group">
+                            <label>Cidade</label>
+                            <input type="text" id="clm-city" placeholder="Ex: Sao Paulo">
+                        </div>
+                        <div class="form-group">
+                            <label>CEP</label>
+                            <input type="text" id="clm-cep" placeholder="00000-000" oninput="maskCep(this)">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Observacoes</label>
+                            <input type="text" id="clm-notes" placeholder="Opcional">
+                        </div>
+                    </div>
+                    <div class="btn-group" style="justify-content:flex-end;">
+                        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-accent">&#10003; Salvar Cliente</button>
+                    </div>
+                </form>
+            `;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function submitNewClient(e) {
+            e.preventDefault();
+            const name = document.getElementById('clm-name').value.trim();
+            if (!name) { alert('Informe o nome do cliente.'); return; }
+            const cl = {
+                id: Date.now(),
+                type: document.getElementById('clm-type').value,
+                name: name,
+                doc: '',
+                phone: document.getElementById('clm-phone').value.trim(),
+                whatsapp: document.getElementById('clm-whatsapp').value.trim(),
+                email: document.getElementById('clm-email').value.trim(),
+                instagram: document.getElementById('clm-instagram').value.trim(),
+                birth: '',
+                address: '',
+                neighborhood: '',
+                city: document.getElementById('clm-city').value.trim(),
+                cep: document.getElementById('clm-cep').value.trim(),
+                sourced: '',
+                notes: document.getElementById('clm-notes').value.trim(),
+                createdAt: new Date().toISOString()
+            };
+            clients.push(cl);
+            save();
+            dbInsert('clients', cl);
+            closeModal();
+            document.getElementById('rent-client').value = name;
+            document.getElementById('rent-phone').value = cl.phone;
+            fillClientList(); renderClients();
+            alert('Cliente cadastrado! Preencha o restante do aluguel e salve.');
         }
 
         // ===== EVENTS =====
@@ -2060,6 +2285,7 @@
         function fillClientList() {
             const dl = document.getElementById('client-list');
             dl.innerHTML = clients.map(c => `<option value="${c.name}"></option>`).join('');
+            fillClientSelect();
         }
 
         function fillClientFromList(name) {
@@ -2479,7 +2705,7 @@
                 rows = clients.map(c => [c.type || '', c.name, c.doc || '', c.phone || '', c.whatsapp || '', c.email || '', c.instagram || '', c.birth || '', c.address || '', c.neighborhood || '', c.city || '', c.cep || '', c.sourced || '', c.notes || '']);
                 filename = backupFilename('clientes.csv');
             } else if (type === 'rentals') {
-                headers = ['Cliente', 'Telefone', 'Evento', 'Local', 'Data', 'Horario Inicio', 'Horario Fim', 'Valor Total (R$)', 'Sinal (R$)', 'Status', 'Observacoes', 'Material'];
+                headers = ['Cliente', 'Telefone', 'Evento', 'Local', 'Data', 'Horario Inicio', 'Horario Fim', 'Valor Total (R$)', 'Recebido (R$)', 'Status', 'Observacoes', 'Material'];
                 rows = rentals.map(r => [r.client, r.phone || '', r.eventName, r.location, fmtDate(r.date), r.timeStart, r.timeEnd || '', r.totalValue.toFixed(2).replace('.', ','), (r.deposit || 0).toFixed(2).replace('.', ','), r.status, r.notes || '', r.equipment.map(e => e.qty + 'x ' + e.name).join('; ')]);
                 filename = backupFilename('alugueis.csv');
             } else {
