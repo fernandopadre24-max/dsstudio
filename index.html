@@ -1,0 +1,2421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundControl - Gestao de Som</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0a0f;
+            --bg-card: rgba(255,255,255,0.03);
+            --bg-card-hover: rgba(255,255,255,0.06);
+            --bg-glass: rgba(255,255,255,0.05);
+            --input-bg: rgba(255,255,255,0.04);
+            --input-bg-focus: rgba(255,255,255,0.06);
+            --hover-bg: rgba(255,255,255,0.02);
+            --eq-bg: rgba(255,255,255,0.03);
+            --qty-bg: rgba(255,255,255,0.05);
+            --option-bg: #1a1a2e;
+            --modal-bg: #12121f;
+            --header-bg: rgba(10,10,15,0.8);
+            --nav-bg: rgba(10,10,15,0.6);
+            --border: rgba(255,255,255,0.08);
+            --border-focus: rgba(255,255,255,0.15);
+            --text: #f0f0f5;
+            --text-secondary: #8888a0;
+            --accent: #6c5ce7;
+            --accent-glow: rgba(108,92,231,0.3);
+            --accent-2: #a855f7;
+            --green: #22c55e;
+            --green-bg: rgba(34,197,94,0.1);
+            --red: #ef4444;
+            --red-bg: rgba(239,68,68,0.1);
+            --yellow: #eab308;
+            --yellow-bg: rgba(234,179,8,0.1);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59,130,246,0.1);
+            --orange: #f97316;
+            --gradient-1: linear-gradient(135deg, #6c5ce7, #a855f7);
+            --gradient-2: linear-gradient(135deg, #3b82f6, #6c5ce7);
+            --gradient-3: linear-gradient(135deg, #22c55e, #3b82f6);
+        }
+
+        [data-theme="light"] {
+            --bg: #f2f3f7;
+            --bg-card: #ffffff;
+            --bg-card-hover: rgba(0,0,0,0.04);
+            --bg-glass: rgba(0,0,0,0.04);
+            --input-bg: #f0f1f6;
+            --input-bg-focus: #ffffff;
+            --hover-bg: rgba(0,0,0,0.03);
+            --eq-bg: #f7f7fb;
+            --qty-bg: #ffffff;
+            --option-bg: #ffffff;
+            --modal-bg: #ffffff;
+            --header-bg: rgba(255,255,255,0.85);
+            --nav-bg: rgba(255,255,255,0.75);
+            --border: rgba(0,0,0,0.1);
+            --border-focus: rgba(108,92,231,0.4);
+            --text: #1a1a2e;
+            --text-secondary: #61617a;
+            --accent: #6c5ce7;
+            --accent-glow: rgba(108,92,231,0.18);
+            --accent-2: #7c3aed;
+            --green: #16a34a;
+            --green-bg: rgba(22,163,74,0.1);
+            --red: #dc2626;
+            --red-bg: rgba(220,38,38,0.1);
+            --yellow: #ca8a04;
+            --yellow-bg: rgba(202,138,4,0.12);
+            --blue: #2563eb;
+            --blue-bg: rgba(37,99,235,0.1);
+        }
+
+        [data-theme="light"] body::before {
+            background: radial-gradient(circle at 30% 20%, rgba(108,92,231,0.07) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(168,85,247,0.05) 0%, transparent 50%);
+        }
+
+        [data-theme="light"] .modal .summary-box {
+            background: rgba(108,92,231,0.06);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(108,92,231,0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(168,85,247,0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app { position: relative; z-index: 1; }
+
+        /* ===== HEADER ===== */
+        .header {
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--header-bg);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: var(--gradient-1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text span {
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 8px;
+        }
+
+        .stat-pill {
+            padding: 8px 16px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            transition: all 0.3s;
+        }
+
+        .stat-pill:hover {
+            border-color: var(--border-focus);
+            background: var(--bg-card-hover);
+        }
+
+        .stat-pill .num {
+            font-weight: 700;
+            color: var(--accent-2);
+        }
+
+        .stat-pill .lbl {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* ===== NAV ===== */
+        .nav {
+            padding: 0 30px;
+            display: flex;
+            gap: 4px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 83px;
+            z-index: 99;
+        }
+
+        .nav button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 16px 22px;
+            font-size: 0.88rem;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav button:hover {
+            color: var(--text);
+        }
+
+        .nav button.active {
+            color: var(--accent-2);
+            border-bottom-color: var(--accent-2);
+        }
+
+        .nav button .nav-icon {
+            font-size: 1.1rem;
+        }
+
+        /* ===== CONTAINER ===== */
+        .container {
+            max-width: 1250px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .page { display: none; animation: fadeIn 0.4s ease; }
+        .page.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== CARDS ===== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            transition: border-color 0.3s;
+        }
+
+        .card:hover {
+            border-color: var(--border-focus);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text);
+        }
+
+        .card-title .icon {
+            width: 32px;
+            height: 32px;
+            background: var(--gradient-1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        /* ===== FORM ===== */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 18px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .form-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 11px 14px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            background: var(--input-bg-focus);
+        }
+
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        .form-group select option {
+            background: var(--option-bg);
+            color: var(--text);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .btn:active { transform: scale(0.97); }
+
+        .btn-accent {
+            background: var(--gradient-1);
+            color: white;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .btn-accent:hover {
+            box-shadow: 0 6px 25px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-green {
+            background: var(--green);
+            color: white;
+            box-shadow: 0 4px 15px rgba(34,197,94,0.2);
+        }
+
+        .btn-green:hover {
+            box-shadow: 0 6px 25px rgba(34,197,94,0.3);
+        }
+
+        .btn-ghost {
+            background: var(--bg-glass);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover {
+            color: var(--text);
+            background: var(--bg-card-hover);
+            border-color: var(--border-focus);
+        }
+
+        .btn-danger-ghost {
+            background: var(--red-bg);
+            color: var(--red);
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+
+        .btn-danger-ghost:hover {
+            background: rgba(239,68,68,0.2);
+        }
+
+        .btn-sm { padding: 6px 12px; font-size: 0.78rem; border-radius: 8px; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* ===== TABLE ===== */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            padding: 13px 16px;
+            text-align: left;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            background: var(--hover-bg);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 13px 16px;
+            font-size: 0.88rem;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        tr:hover td {
+            background: var(--hover-bg);
+        }
+
+        .td-name {
+            font-weight: 600;
+        }
+
+        /* ===== BADGES ===== */
+        .badge {
+            padding: 4px 11px;
+            border-radius: 50px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+
+        .badge-green { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+        .badge-red { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+        .badge-yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(234,179,8,0.2); }
+        .badge-blue { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(59,130,246,0.2); }
+        .badge-accent { background: rgba(108,92,231,0.1); color: var(--accent-2); border: 1px solid rgba(168,85,247,0.2); }
+
+        /* ===== SEARCH / FILTER ===== */
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .search-bar input,
+        .search-bar select {
+            padding: 10px 14px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 0.88rem;
+            font-family: inherit;
+            flex: 1;
+            min-width: 160px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-bar input:focus,
+        .search-bar select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .search-bar select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        .search-bar select option {
+            background: var(--option-bg);
+        }
+
+        /* ===== DASHBOARD ===== */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+
+        .dash-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .dash-card:hover {
+            border-color: var(--border-focus);
+            transform: translateY(-2px);
+        }
+
+        .dash-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .dash-card:nth-child(1)::before { background: var(--gradient-1); }
+        .dash-card:nth-child(2)::before { background: var(--gradient-3); }
+        .dash-card:nth-child(3)::before { background: linear-gradient(135deg, #eab308, #f97316); }
+        .dash-card:nth-child(4)::before { background: var(--gradient-2); }
+
+        .dash-card .dash-icon {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        .dash-card .dash-number {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .dash-card:nth-child(1) .dash-number { color: var(--accent-2); }
+        .dash-card:nth-child(2) .dash-number { color: var(--green); }
+        .dash-card:nth-child(3) .dash-number { color: var(--yellow); }
+        .dash-card:nth-child(4) .dash-number { color: var(--blue); }
+
+        .dash-card .dash-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .dash-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* ===== EQUIPMENT SELECTOR ===== */
+        .eq-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .eq-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: var(--eq-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .eq-check:hover {
+            border-color: var(--accent);
+            background: rgba(108,92,231,0.05);
+        }
+
+        .eq-check.checked {
+            border-color: var(--accent);
+            background: rgba(108,92,231,0.1);
+        }
+
+        .eq-check input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .eq-check label {
+            cursor: pointer;
+            flex: 1;
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        .eq-check label small {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .eq-check .qty-input {
+            width: 52px;
+            padding: 5px 8px;
+            background: var(--qty-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            text-align: center;
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .eq-check .qty-input:focus {
+            border-color: var(--accent);
+        }
+
+        /* ===== EVENT CARDS ===== */
+        .event-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .event-card:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .event-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+        }
+
+        .event-card[data-status="agendado"]::before { background: var(--yellow); }
+        .event-card[data-status="em andamento"]::before { background: var(--blue); }
+        .event-card[data-status="concluido"]::before { background: var(--green); }
+        .event-card[data-status="cancelado"]::before { background: var(--red); }
+
+        .event-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .event-top h3 {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .event-value {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--green);
+        }
+
+        .event-details {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .event-details span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .event-material {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* ===== MODAL ===== */
+        .modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-bg.active { display: flex; }
+
+        .modal {
+            background: var(--modal-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .modal .detail-item label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .modal .detail-item p {
+            font-size: 0.92rem;
+            padding: 4px 0;
+        }
+
+        .modal .summary-box {
+            background: rgba(108,92,231,0.08);
+            border: 1px solid rgba(108,92,231,0.15);
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .modal .summary-box h3 {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--accent-2);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .modal .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.88rem;
+        }
+
+        .modal .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .modal .summary-total {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--green);
+            text-align: right;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 45px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 2.8rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* ===== STATS ROW IN EVENTS ===== */
+        .stats-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+        }
+
+        .stat-chip {
+            flex: 1;
+            min-width: 140px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-chip .num {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-chip .lbl {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-top: 4px;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .filter-row .form-group {
+            min-width: 160px;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .dash-grid { grid-template-columns: 1fr 1fr; }
+            .dash-row { grid-template-columns: 1fr; }
+            .modal .detail-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                padding: 16px;
+            }
+            .header-stats { width: 100%; justify-content: center; }
+            .container { padding: 16px; }
+            .dash-grid { grid-template-columns: 1fr; }
+            .nav { overflow-x: auto; padding: 0 10px; }
+            .nav button { padding: 14px 16px; font-size: 0.8rem; white-space: nowrap; }
+            .form-grid { grid-template-columns: 1fr; }
+            .eq-selector { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">&#127908;</div>
+                <div class="logo-text"><span id="app-title-1">Sound</span><span id="app-title-2">Control</span></div>
+                <button class="btn btn-ghost btn-sm" onclick="editTitle()" title="Renomear sistema" style="padding:5px 9px;">&#9998;</button>
+            </div>
+            <div class="header-stats">
+                <button class="btn btn-ghost btn-sm" id="theme-toggle" onclick="toggleTheme()" title="Alternar tema">&#127763;</button>
+                <div class="stat-pill">
+                    <span class="num" id="stat-items">0</span>
+                    <span class="lbl">itens</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="num" id="stat-events">0</span>
+                    <span class="lbl">eventos</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="num" id="stat-revenue">R$ 0</span>
+                    <span class="lbl">receita</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- NAV -->
+        <nav class="nav" id="main-nav">
+            <button class="active" data-page="dashboard">
+                <span class="nav-icon">&#128200;</span> Painel
+            </button>
+            <button data-page="inventory">
+                <span class="nav-icon">&#128230;</span> Estoque
+            </button>
+            <button data-page="rentals">
+                <span class="nav-icon">&#128197;</span> Alugueis
+            </button>
+            <button data-page="clients">
+                <span class="nav-icon">&#128101;</span> Clientes
+            </button>
+            <button data-page="events">
+                <span class="nav-icon">&#127751;</span> Eventos
+            </button>
+        </nav>
+
+        <div class="container">
+            <!-- DASHBOARD -->
+            <div id="page-dashboard" class="page active">
+                <div class="dash-grid">
+                    <div class="dash-card">
+                        <div class="dash-icon">&#128230;</div>
+                        <div class="dash-number" id="dash-total-equip">0</div>
+                        <div class="dash-label">Tipos de Equipamento</div>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-icon">&#9989;</div>
+                        <div class="dash-number" id="dash-available">0</div>
+                        <div class="dash-label">Itens Disponiveis</div>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-icon">&#128197;</div>
+                        <div class="dash-number" id="dash-active-rentals">0</div>
+                        <div class="dash-label">Alugueis Ativos</div>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-icon">&#128176;</div>
+                        <div class="dash-number" id="dash-revenue">R$ 0</div>
+                        <div class="dash-label">Receita do Mes</div>
+                    </div>
+                </div>
+
+                <div class="dash-row">
+                    <div class="card">
+                        <div class="card-title">
+                            <div class="icon">&#128197;</div> Proximos Eventos
+                        </div>
+                        <div id="dashboard-events">
+                            <div class="empty-state">
+                                <div class="empty-icon">&#128197;</div>
+                                <p>Nenhum evento agendado</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">
+                            <div class="icon">&#9888;&#65039;</div> Estoque Baixo
+                        </div>
+                        <div id="dashboard-low-stock">
+                            <div class="empty-state">
+                                <div class="empty-icon">&#9989;</div>
+                                <p>Tudo em ordem</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128190;</div> Backup e Exportacao
+                    </div>
+                    <div class="search-bar">
+                        <button class="btn btn-accent" onclick="exportBackup()">&#11015; Baixar Backup (JSON)</button>
+                        <button class="btn btn-green" onclick="exportCSV('inventory')">&#128196; Exportar Estoque (Excel)</button>
+                        <button class="btn btn-green" onclick="exportCSV('clients')">&#128196; Exportar Clientes (Excel)</button>
+                        <button class="btn btn-green" onclick="exportCSV('rentals')">&#128196; Exportar Alugueis (Excel)</button>
+                        <label class="btn btn-ghost" style="cursor:pointer;">
+                            &#11014; Restaurar Backup
+                            <input type="file" id="import-file" accept=".json,.txt,application/json" style="display:none;" onchange="importBackup(this)">
+                        </label>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+                        <button class="btn btn-ghost" onclick="openDbSettings()">&#128187; Configurar banco na nuvem</button>
+                        <span id="db-status" class="badge badge-yellow">Banco na nuvem: desligado</span>
+                    </div>
+                    <p style="font-size:0.8rem;color:var(--text-secondary);line-height:1.6;">
+                        O backup JSON guarda <strong>tudo</strong> (estoque, alugueis, clientes e preferencias).<br>
+                        Os botões de Excel geram planilhas .csv que abrem direto no Excel, Google Sheets ou LibreOffice.<br>
+                        Com o banco na nuvem configurado, os dados ficam sincronizados entre qualquer dispositivo.
+                    </p>
+                </div>
+            </div>
+
+            <!-- INVENTORY -->
+            <div id="page-inventory" class="page">
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#10133;</div> Adicionar Equipamento
+                    </div>
+                    <form id="form-add-equipment" onsubmit="addEquipment(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nome</label>
+                                <input type="text" id="eq-name" required placeholder="Ex: Subwoofer 15 polegadas">
+                            </div>
+                            <div class="form-group">
+                                <label>Categoria</label>
+                                <select id="eq-category" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Sub">Sub</option>
+                                    <option value="Caixa">Caixa / Speaker</option>
+                                    <option value="Microfone">Microfone</option>
+                                    <option value="Microfone de Bumbo">Microfone de Bumbo</option>
+                                    <option value="Mesa de Som">Mesa de Som</option>
+                                    <option value="Cabo">Cabo</option>
+                                    <option value="Suporte">Suporte</option>
+                                    <option value="Iluminacao">Iluminacao</option>
+                                    <option value="Amplificador">Amplificador</option>
+                                    <option value="Outro">Outro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantidade</label>
+                                <input type="number" id="eq-qty" min="1" value="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Valor Unitario (R$)</label>
+                                <input type="number" id="eq-value" min="0" step="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Marca / Modelo</label>
+                                <input type="text" id="eq-brand" placeholder="Ex: JBL PRX">
+                            </div>
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select id="eq-status">
+                                    <option value="disponivel">Disponivel</option>
+                                    <option value="manutencao">Em Manutencao</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Observacoes</label>
+                                <input type="text" id="eq-notes" placeholder="Informacoes adicionais...">
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-accent">&#10133; Adicionar ao Estoque</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128230;</div> Estoque Atual
+                    </div>
+                    <div class="search-bar">
+                        <input type="text" id="search-inventory" placeholder="Buscar equipamento..." oninput="renderInventory()">
+                        <select id="filter-category" onchange="renderInventory()">
+                            <option value="">Todas categorias</option>
+                            <option value="Sub">Sub</option>
+                            <option value="Caixa">Caixa / Speaker</option>
+                            <option value="Microfone">Microfone</option>
+                            <option value="Microfone de Bumbo">Microfone de Bumbo</option>
+                            <option value="Mesa de Som">Mesa de Som</option>
+                            <option value="Cabo">Cabo</option>
+                            <option value="Suporte">Suporte</option>
+                            <option value="Iluminacao">Iluminacao</option>
+                            <option value="Amplificador">Amplificador</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Categoria</th>
+                                    <th>Qtd Total</th>
+                                    <th>Disponivel</th>
+                                    <th>Valor Unit.</th>
+                                    <th>Marca</th>
+                                    <th>Status</th>
+                                    <th>Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table"></tbody>
+                        </table>
+                    </div>
+                    <div id="inventory-empty" class="empty-state" style="display:none;">
+                        <div class="empty-icon">&#128230;</div>
+                        <p>Nenhum equipamento cadastrado</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RENTALS -->
+            <div id="page-rentals" class="page">
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#10133;</div> Novo Aluguel
+                    </div>
+                    <form id="form-add-rental" onsubmit="addRental(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nome do Cliente</label>
+                                <input type="text" id="rent-client" required list="client-list" placeholder="Digite ou selecione um cliente" oninput="fillClientFromList(this.value)">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="text" id="rent-phone" placeholder="(00) 00000-0000" oninput="maskPhone(this)">
+                            </div>
+                            <div class="form-group">
+                                <label>Nome do Evento</label>
+                                <input type="text" id="rent-event-name" required placeholder="Ex: Casamento Silva">
+                            </div>
+                            <div class="form-group">
+                                <label>Local</label>
+                                <input type="text" id="rent-location" required placeholder="Ex: Salao de Festas ABC">
+                            </div>
+                            <div class="form-group">
+                                <label>Data</label>
+                                <input type="date" id="rent-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Horario Inicio</label>
+                                <input type="time" id="rent-time-start" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Horario Fim</label>
+                                <input type="time" id="rent-time-end">
+                            </div>
+                            <div class="form-group">
+                                <label>Valor Total (R$)</label>
+                                <input type="number" id="rent-value" min="0" step="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Sinal / Entrada (R$)</label>
+                                <input type="number" id="rent-deposit" min="0" step="0.01" placeholder="0.00">
+                            </div>
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select id="rent-status">
+                                    <option value="agendado">Agendado</option>
+                                    <option value="em andamento">Em Andamento</option>
+                                    <option value="concluido">Concluido</option>
+                                    <option value="cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Observacoes</label>
+                                <input type="text" id="rent-notes" placeholder="Detalhes adicionais...">
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 18px;">
+                            <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px;">
+                                Material para este Aluguel
+                            </label>
+                            <div class="eq-selector" id="rental-equipment-selector"></div>
+                        </div>
+
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-accent">&#10133; Registrar Aluguel</button>
+                        </div>
+                    </form>
+                </div>
+                    <datalist id="client-list"></datalist>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128203;</div> Lista de Alugueis
+                    </div>
+                    <div class="search-bar">
+                        <input type="text" id="search-rentals" placeholder="Buscar aluguel..." oninput="renderRentals()">
+                        <select id="filter-rental-status" onchange="renderRentals()">
+                            <option value="">Todos status</option>
+                            <option value="agendado">Agendado</option>
+                            <option value="em andamento">Em Andamento</option>
+                            <option value="concluido">Concluido</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Evento</th>
+                                    <th>Local</th>
+                                    <th>Data</th>
+                                    <th>Horario</th>
+                                    <th>Material</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                    <th>Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rentals-table"></tbody>
+                        </table>
+                    </div>
+                    <div id="rentals-empty" class="empty-state" style="display:none;">
+                        <div class="empty-icon">&#128197;</div>
+                        <p>Nenhum aluguel registrado</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CLIENTS -->
+            <div id="page-clients" class="page">
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#10133;</div> Cadastrar Cliente
+                    </div>
+                    <form id="form-add-client" onsubmit="addClient(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Tipo</label>
+                                <select id="cl-type">
+                                    <option value="Pessoa Fisica">Pessoa Fisica</option>
+                                    <option value="Pessoa Juridica">Pessoa Juridica</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Nome</label>
+                                <input type="text" id="cl-name" required placeholder="Nome completo">
+                            </div>
+                            <div class="form-group">
+                                <label>CPF / CNPJ</label>
+                                <input type="text" id="cl-doc" placeholder="000.000.000-00" oninput="maskDoc(this)">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="text" id="cl-phone" placeholder="(00) 00000-0000" oninput="maskPhone(this)">
+                            </div>
+                            <div class="form-group">
+                                <label>WhatsApp</label>
+                                <input type="text" id="cl-whatsapp" placeholder="(00) 00000-0000" oninput="maskPhone(this)">
+                            </div>
+                            <div class="form-group">
+                                <label>E-mail</label>
+                                <input type="email" id="cl-email" placeholder="email@exemplo.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Instagram</label>
+                                <input type="text" id="cl-instagram" placeholder="@usuario">
+                            </div>
+                            <div class="form-group">
+                                <label>Data de Nascimento</label>
+                                <input type="date" id="cl-birth">
+                            </div>
+                            <div class="form-group">
+                                <label>Endereco</label>
+                                <input type="text" id="cl-address" placeholder="Rua, numero">
+                            </div>
+                            <div class="form-group">
+                                <label>Bairro</label>
+                                <input type="text" id="cl-neighborhood" placeholder="Bairro">
+                            </div>
+                            <div class="form-group">
+                                <label>Cidade</label>
+                                <input type="text" id="cl-city" placeholder="Ex: Sao Paulo">
+                            </div>
+                            <div class="form-group">
+                                <label>CEP</label>
+                                <input type="text" id="cl-cep" placeholder="00000-000" oninput="maskCep(this)">
+                            </div>
+                            <div class="form-group">
+                                <label>Como Conheceu</label>
+                                <select id="cl-sourced">
+                                    <option value="">Selecione...</option>
+                                    <option value="Indicacao">Indicacao</option>
+                                    <option value="Instagram">Instagram</option>
+                                    <option value="Facebook">Facebook</option>
+                                    <option value="Google">Google</option>
+                                    <option value="Outro">Outro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Observacoes</label>
+                                <input type="text" id="cl-notes" placeholder="Ex: Prefere whatsapp, indica clientes...">
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-accent">&#10133; Cadastrar Cliente</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128101;</div> Clientes Cadastrados
+                    </div>
+                    <div class="search-bar">
+                        <input type="text" id="search-clients" placeholder="Buscar cliente..." oninput="renderClients()">
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Telefone</th>
+                                    <th>Cidade</th>
+                                    <th>Alugueis</th>
+                                    <th>Total Gasto</th>
+                                    <th>Ultimo Aluguel</th>
+                                    <th>Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clients-table"></tbody>
+                        </table>
+                    </div>
+                    <div id="clients-empty" class="empty-state" style="display:none;">
+                        <div class="empty-icon">&#128101;</div>
+                        <p>Nenhum cliente cadastrado</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EVENTS -->
+            <div id="page-events" class="page">
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#127751;</div> Timeline de Eventos
+                    </div>
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label>Mes</label>
+                            <input type="month" id="filter-events-month" onchange="renderEvents()">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="filter-events-status" onchange="renderEvents()">
+                                <option value="">Todos</option>
+                                <option value="agendado">Agendado</option>
+                                <option value="em andamento">Em Andamento</option>
+                                <option value="concluido">Concluido</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="stats-row" id="events-stats"></div>
+                    <div id="events-timeline"></div>
+                    <div id="events-empty" class="empty-state" style="display:none;">
+                        <div class="empty-icon">&#127751;</div>
+                        <p>Nenhum evento encontrado</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal-bg" id="modal-bg">
+        <div class="modal">
+            <div id="modal-content"></div>
+            <div class="btn-group" style="justify-content: flex-end;">
+                <button class="btn btn-ghost" onclick="closeModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        let inventory = JSON.parse(localStorage.getItem('sc_inventory') || '[]');
+        let rentals = JSON.parse(localStorage.getItem('sc_rentals') || '[]');
+        let clients = JSON.parse(localStorage.getItem('sc_clients') || '[]');
+
+        // ===== DATABASE (Supabase) =====
+        let db = null;
+        let dbOnline = false;
+
+        function dbConfig() {
+            const url = localStorage.getItem('sc_db_url') || '';
+            const key = localStorage.getItem('sc_db_key') || '';
+            return { url, key };
+        }
+
+        function dbReady() {
+            const c = dbConfig();
+            return !!(c.url && c.key && window.supabase);
+        }
+
+        function initDb() {
+            const c = dbConfig();
+            if (!c.url || !c.key || !window.supabase) { db = null; dbOnline = false; return; }
+            try {
+                db = window.supabase.createClient(c.url, c.key);
+                dbOnline = true;
+            } catch (e) { db = null; dbOnline = false; }
+            updateDbStatus();
+        }
+
+        async function dbInsert(table, row) {
+            if (!dbOnline || !db) return;
+            try { await db.from(table).upsert(row); } catch (e) { console.warn('db insert', e); }
+        }
+
+        async function dbUpdate(table, row) {
+            if (!dbOnline || !db) return;
+            try { await db.from(table).update(row).eq('id', row.id); } catch (e) { console.warn('db update', e); }
+        }
+
+        async function dbDelete(table, id) {
+            if (!dbOnline || !db) return;
+            try { await db.from(table).delete().eq('id', id); } catch (e) { console.warn('db delete', e); }
+        }
+
+        async function loadFromDb() {
+            if (!dbOnline || !db) return false;
+            try {
+                const i = await db.from('inventory').select('*').order('id', { ascending: true });
+                if (i.error) throw i.error;
+                const r = await db.from('rentals').select('*').order('created_at', { ascending: true });
+                if (r.error) throw r.error;
+                const c = await db.from('clients').select('*').order('id', { ascending: true });
+                if (c.error) throw c.error;
+                if (!i.data.length && !r.data.length && !c.data.length) return false;
+                inventory = i.data || [];
+                rentals = r.data || [];
+                clients = c.data || [];
+                save();
+                renderDashboard(); updateStats(); fillClientList();
+                if (document.getElementById('page-inventory').classList.contains('active')) renderInventory();
+                if (document.getElementById('page-rentals').classList.contains('active')) { renderRentals(); renderEquipmentSelector(); }
+                if (document.getElementById('page-clients').classList.contains('active')) renderClients();
+                if (document.getElementById('page-events').classList.contains('active')) renderEvents();
+                return true;
+            } catch (e) {
+                console.warn('load db', e);
+                return false;
+            }
+        }
+
+        async function migrateLocalToDb() {
+            if (!dbOnline || !db) return;
+            try {
+                if (inventory.length) for (const eq of inventory) await db.from('inventory').upsert(eq);
+                if (clients.length) for (const cl of clients) await db.from('clients').upsert(cl);
+                if (rentals.length) for (const r of rentals) await db.from('rentals').upsert(r);
+            } catch (e) { console.warn('migrate', e); }
+        }
+
+        async function deleteAndRestoreDb() {
+            if (!dbOnline || !db) return;
+            try {
+                await db.from('inventory').delete().gte('id', 0);
+                await db.from('clients').delete().gte('id', 0);
+                await db.from('rentals').delete().gte('id', 0);
+                await migrateLocalToDb();
+            } catch (e) { console.warn('restore db', e); }
+        }
+
+        function updateDbStatus() {
+            const el = document.getElementById('db-status');
+            if (!el) return;
+            if (dbOnline) {
+                el.textContent = 'Banco na nuvem: CONECTADO';
+                el.className = 'badge badge-green';
+            } else {
+                el.textContent = 'Banco na nuvem: desligado (dados locais)';
+                el.className = 'badge badge-yellow';
+            }
+        }
+
+        function openDbSettings() {
+            const c = dbConfig();
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#128187; Banco na Nuvem</h2>
+                <form onsubmit="saveDbSettings(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>URL do Supabase</label>
+                            <input type="url" id="db-url" value="${escAttr(c.url)}" placeholder="https://xxxx.supabase.co">
+                        </div>
+                        <div class="form-group">
+                            <label>Chave publica (anon key)</label>
+                            <input type="password" id="db-key" value="${escAttr(c.key)}" placeholder="eyJ...">
+                        </div>
+                    </div>
+                    <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:12px;line-height:1.6;">
+                        Ache esses dados em Supabase &rarr; Project Settings &rarr; API.<br>
+                        Use a chave <strong>anon</strong> (publica). Sem configurar, o app continua funcionando com dados locais.
+                    </p>
+                    <div class="btn-group" style="justify-content:flex-end;">
+                        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-accent">Salvar e Conectar</button>
+                    </div>
+                </form>
+            `;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function saveDbSettings(e) {
+            e.preventDefault();
+            localStorage.setItem('sc_db_url', document.getElementById('db-url').value.trim());
+            localStorage.setItem('sc_db_key', document.getElementById('db-key').value.trim());
+            closeModal();
+            initDb();
+            (async () => {
+                const loaded = await loadFromDb();
+                if (!loaded) { await migrateLocalToDb(); renderDashboard(); updateStats(); }
+                updateDbStatus();
+                alert(dbOnline ? 'Conectado! Dados sincronizados.' : 'Nao foi possivel conectar. Verifique URL e chave.');
+            })();
+        }
+
+        function save() {
+            localStorage.setItem('sc_inventory', JSON.stringify(inventory));
+            localStorage.setItem('sc_rentals', JSON.stringify(rentals));
+            localStorage.setItem('sc_clients', JSON.stringify(clients));
+        }
+
+        // ===== NAV =====
+        document.getElementById('main-nav').addEventListener('click', function(e) {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const page = btn.dataset.page;
+
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+
+            document.getElementById('page-' + page).classList.add('active');
+            btn.classList.add('active');
+
+            if (page === 'dashboard') renderDashboard();
+            if (page === 'inventory') renderInventory();
+            if (page === 'rentals') { renderRentals(); renderEquipmentSelector(); }
+            if (page === 'clients') renderClients();
+            if (page === 'events') renderEvents();
+        });
+
+        // ===== INVENTORY =====
+        function addEquipment(e) {
+            e.preventDefault();
+            const eq = {
+                id: Date.now(),
+                name: document.getElementById('eq-name').value.trim(),
+                category: document.getElementById('eq-category').value,
+                qty: parseInt(document.getElementById('eq-qty').value),
+                value: parseFloat(document.getElementById('eq-value').value),
+                brand: document.getElementById('eq-brand').value.trim(),
+                status: document.getElementById('eq-status').value,
+                notes: document.getElementById('eq-notes').value.trim(),
+                available: parseInt(document.getElementById('eq-qty').value)
+            };
+            inventory.push(eq);
+            save();
+            dbInsert('inventory', eq);
+            document.getElementById('form-add-equipment').reset();
+            document.getElementById('eq-qty').value = 1;
+            renderInventory();
+            updateStats();
+        }
+
+        function deleteEquipment(id) {
+            if (!confirm('Excluir este equipamento?')) return;
+            inventory = inventory.filter(e => e.id !== id);
+            save(); renderInventory(); updateStats();
+            dbDelete('inventory', id);
+        }
+
+        function editEquipment(id) {
+            const eq = inventory.find(e => e.id === id);
+            if (!eq) return;
+            const n = prompt('Nome:', eq.name); if (n === null) return;
+            const c = prompt('Categoria:', eq.category); if (c === null) return;
+            const q = prompt('Quantidade Total:', eq.qty); if (q === null) return;
+            const a = prompt('Disponivel:', eq.available); if (a === null) return;
+            const v = prompt('Valor Unitario (R$):', eq.value); if (v === null) return;
+            const b = prompt('Marca/Modelo:', eq.brand); if (b === null) return;
+
+            eq.name = n.trim(); eq.category = c.trim();
+            eq.qty = parseInt(q) || eq.qty; eq.available = parseInt(a) || eq.available;
+            eq.value = parseFloat(v) || eq.value; eq.brand = b.trim();
+            save(); renderInventory(); updateStats();
+            dbUpdate('inventory', eq);
+        }
+
+        function renderInventory() {
+            const search = document.getElementById('search-inventory').value.toLowerCase();
+            const cat = document.getElementById('filter-category').value;
+
+            let filtered = inventory.filter(eq => {
+                const ms = eq.name.toLowerCase().includes(search) || (eq.brand && eq.brand.toLowerCase().includes(search));
+                const mc = !cat || eq.category === cat;
+                return ms && mc;
+            });
+
+            const tbody = document.getElementById('inventory-table');
+            const empty = document.getElementById('inventory-empty');
+
+            if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = filtered.map(eq => `
+                <tr>
+                    <td class="td-name">${eq.name}</td>
+                    <td><span class="badge badge-accent">${eq.category}</span></td>
+                    <td>${eq.qty}</td>
+                    <td><strong style="color:${eq.available > 0 ? 'var(--green)' : 'var(--red)'}">${eq.available}</strong></td>
+                    <td>${fmtBRL(eq.value)}</td>
+                    <td>${eq.brand || '-'}</td>
+                    <td><span class="badge ${eq.status === 'disponivel' ? 'badge-green' : 'badge-yellow'}">${eq.status === 'disponivel' ? 'Disponivel' : 'Manutencao'}</span></td>
+                    <td class="action-btns">
+                        <button class="btn btn-ghost btn-sm" onclick="editEquipment(${eq.id})">&#9998;</button>
+                        <button class="btn btn-danger-ghost btn-sm" onclick="deleteEquipment(${eq.id})">&#10005;</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ===== RENTALS =====
+        function renderEquipmentSelector() {
+            const c = document.getElementById('rental-equipment-selector');
+            const available = inventory.filter(eq => eq.status === 'disponivel' && eq.available > 0);
+
+            if (!available.length) {
+                c.innerHTML = '<div class="empty-state"><p>Nenhum equipamento disponivel</p></div>';
+                return;
+            }
+
+            c.innerHTML = available.map(eq => `
+                <div class="eq-check" onclick="toggleEqCheck(this, ${eq.id})">
+                    <input type="checkbox" id="rent-eq-${eq.id}" value="${eq.id}">
+                    <label for="rent-eq-${eq.id}">${eq.name}<small>${eq.category} &bull; Disp: ${eq.available}</small></label>
+                    <input type="number" class="qty-input" id="rent-eq-qty-${eq.id}" min="1" max="${eq.available}" value="1" onclick="event.stopPropagation()">
+                </div>
+            `).join('');
+        }
+
+        function toggleEqCheck(el, id) {
+            const cb = el.querySelector('input[type="checkbox"]');
+            cb.checked = !cb.checked;
+            el.classList.toggle('checked', cb.checked);
+        }
+
+        function addRental(e) {
+            e.preventDefault();
+            const selected = [];
+            inventory.forEach(eq => {
+                const cb = document.getElementById(`rent-eq-${eq.id}`);
+                if (cb && cb.checked) {
+                    const qty = parseInt(document.getElementById(`rent-eq-qty-${eq.id}`).value) || 1;
+                    selected.push({ id: eq.id, name: eq.name, category: eq.category, qty, unitValue: eq.value });
+                }
+            });
+
+            if (!selected.length) { alert('Selecione pelo menos um equipamento!'); return; }
+
+            const clientName = document.getElementById('rent-client').value.trim();
+            const clientPhone = document.getElementById('rent-phone').value.trim();
+            let matchedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+            if (!matchedClient && clientName) {
+                matchedClient = {
+                    id: Date.now(),
+                    name: clientName,
+                    phone: clientPhone,
+                    email: '',
+                    city: '',
+                    instagram: '',
+                    notes: 'Criado automaticamente via aluguel',
+                    createdAt: new Date().toISOString()
+                };
+                clients.push(matchedClient);
+            }
+            if (matchedClient) {
+                clients.find(c => c.id === matchedClient.id).lastRentDate = document.getElementById('rent-date').value;
+                save();
+                dbInsert('clients', matchedClient);
+            }
+
+            const rental = {
+                id: Date.now(),
+                clientId: matchedClient ? matchedClient.id : null,
+                client: clientName,
+                phone: clientPhone || (matchedClient ? matchedClient.phone : ''),
+                eventName: document.getElementById('rent-event-name').value.trim(),
+                location: document.getElementById('rent-location').value.trim(),
+                date: document.getElementById('rent-date').value,
+                timeStart: document.getElementById('rent-time-start').value,
+                timeEnd: document.getElementById('rent-time-end').value,
+                totalValue: parseFloat(document.getElementById('rent-value').value),
+                deposit: parseFloat(document.getElementById('rent-deposit').value) || 0,
+                status: document.getElementById('rent-status').value,
+                notes: document.getElementById('rent-notes').value.trim(),
+                equipment: selected,
+                createdAt: new Date().toISOString()
+            };
+
+            selected.forEach(item => {
+                const eq = inventory.find(e => e.id === item.id);
+                if (eq) eq.available = Math.max(0, eq.available - item.qty);
+            });
+
+            rentals.push(rental);
+            save();
+            dbInsert('rentals', rental);
+            selected.forEach(item => {
+                const eq = inventory.find(e => e.id === item.id);
+                if (eq) dbUpdate('inventory', eq);
+            });
+            document.getElementById('form-add-rental').reset();
+            renderRentals(); renderEquipmentSelector(); updateStats(); fillClientList();
+        }
+
+        function returnEquipment(id) {
+            const r = rentals.find(x => x.id === id);
+            if (!r || !confirm('Confirmar devolucao do material?')) return;
+            r.equipment.forEach(item => {
+                const eq = inventory.find(e => e.id === item.id);
+                if (eq) eq.available = Math.min(eq.qty, eq.available + item.qty);
+            });
+            r.status = 'concluido';
+            save(); renderRentals(); updateStats();
+            dbUpdate('rentals', r);
+            r.equipment.forEach(item => {
+                const eq = inventory.find(e => e.id === item.id);
+                if (eq) dbUpdate('inventory', eq);
+            });
+        }
+
+        function cancelRental(id) {
+            const r = rentals.find(x => x.id === id);
+            if (!r || !confirm('Cancelar aluguel e devolver material?')) return;
+            r.equipment.forEach(item => {
+                const eq = inventory.find(e => e.id === item.id);
+                if (eq) eq.available = Math.min(eq.qty, eq.available + item.qty);
+            });
+            r.status = 'cancelado';
+            save(); renderRentals(); updateStats();
+            dbUpdate('rentals', r);
+            r.equipment.forEach(item => {
+                const eq = inventory.find(e => e.id === item.id);
+                if (eq) dbUpdate('inventory', eq);
+            });
+        }
+
+        function deleteRental(id) {
+            if (!confirm('Excluir este aluguel permanentemente?')) return;
+            const r = rentals.find(x => x.id === id);
+            if (r && r.status !== 'concluido' && r.status !== 'cancelado') {
+                r.equipment.forEach(item => {
+                    const eq = inventory.find(e => e.id === item.id);
+                    if (eq) eq.available = Math.min(eq.qty, eq.available + item.qty);
+                });
+            }
+            rentals = rentals.filter(x => x.id !== id);
+            save(); renderRentals(); updateStats();
+            dbDelete('rentals', id);
+            if (r && r.status !== 'concluido' && r.status !== 'cancelado') {
+                r.equipment.forEach(item => {
+                    const eq = inventory.find(e => e.id === item.id);
+                    if (eq) dbUpdate('inventory', eq);
+                });
+            }
+        }
+
+        function viewRental(id) {
+            const r = rentals.find(x => x.id === id);
+            if (!r) return;
+
+            const eqList = r.equipment.map(item =>
+                `<div class="summary-row"><span>${item.qty}x ${item.name} <span class="badge badge-accent" style="margin-left:6px">${item.category}</span></span><span>${fmtBRL(item.qty * item.unitValue)}</span></div>`
+            ).join('');
+
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#128203; Detalhes do Aluguel</h2>
+                <div class="detail-grid">
+                    <div class="detail-item"><label>Cliente</label><p>${r.client}</p></div>
+                    <div class="detail-item"><label>Telefone</label><p>${r.phone || '-'}</p></div>
+                    <div class="detail-item"><label>Evento</label><p>${r.eventName}</p></div>
+                    <div class="detail-item"><label>Local</label><p>${r.location}</p></div>
+                    <div class="detail-item"><label>Data</label><p>${fmtDate(r.date)}</p></div>
+                    <div class="detail-item"><label>Horario</label><p>${r.timeStart}${r.timeEnd ? ' - ' + r.timeEnd : ''}</p></div>
+                    <div class="detail-item"><label>Status</label><p><span class="badge ${statusBadge(r.status)}">${r.status}</span></p></div>
+                    <div class="detail-item"><label>Sinal</label><p>${fmtBRL(r.deposit)}</p></div>
+                </div>
+                ${r.notes ? `<p style="margin-bottom:18px;color:var(--text-secondary);font-size:0.88rem">Observacoes: ${r.notes}</p>` : ''}
+                <div class="summary-box">
+                    <h3>&#128230; Material Alugado</h3>
+                    ${eqList}
+                    <div class="summary-total">Total: ${fmtBRL(r.totalValue)}</div>
+                </div>
+            `;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-bg').classList.remove('active');
+        }
+
+        document.getElementById('modal-bg').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        function renderRentals() {
+            const search = document.getElementById('search-rentals').value.toLowerCase();
+            const fs = document.getElementById('filter-rental-status').value;
+
+            let filtered = rentals.filter(r => {
+                const ms = r.client.toLowerCase().includes(search) || r.eventName.toLowerCase().includes(search) || r.location.toLowerCase().includes(search);
+                return ms && (!fs || r.status === fs);
+            }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const tbody = document.getElementById('rentals-table');
+            const empty = document.getElementById('rentals-empty');
+
+            if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = filtered.map(r => `
+                <tr>
+                    <td class="td-name">${r.client}</td>
+                    <td>${r.eventName}</td>
+                    <td>${r.location}</td>
+                    <td>${fmtDate(r.date)}</td>
+                    <td>${r.timeStart}${r.timeEnd ? ' - ' + r.timeEnd : ''}</td>
+                    <td>${r.equipment.map(e => e.qty + 'x ' + e.name).join(', ')}</td>
+                    <td><strong style="color:var(--green)">${fmtBRL(r.totalValue)}</strong></td>
+                    <td><span class="badge ${statusBadge(r.status)}">${r.status}</span></td>
+                    <td class="action-btns">
+                        <button class="btn btn-ghost btn-sm" onclick="viewRental(${r.id})" title="Detalhes">&#128065;</button>
+                        ${(r.status === 'agendado' || r.status === 'em andamento') ? `
+                            <button class="btn btn-green btn-sm" onclick="returnEquipment(${r.id})" title="Devolver">&#10003;</button>
+                            <button class="btn btn-danger-ghost btn-sm" onclick="cancelRental(${r.id})" title="Cancelar">&#10005;</button>
+                        ` : ''}
+                        <button class="btn btn-danger-ghost btn-sm" onclick="deleteRental(${r.id})" title="Excluir">&#128465;</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ===== EVENTS =====
+        function renderEvents() {
+            const mf = document.getElementById('filter-events-month').value;
+            const sf = document.getElementById('filter-events-status').value;
+
+            let filtered = rentals.filter(r => {
+                return (!mf || (r.date && r.date.startsWith(mf))) && (!sf || r.status === sf);
+            }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            const tl = document.getElementById('events-timeline');
+            const st = document.getElementById('events-stats');
+            const em = document.getElementById('events-empty');
+
+            if (!filtered.length) { tl.innerHTML = ''; st.innerHTML = ''; em.style.display = 'block'; return; }
+            em.style.display = 'none';
+
+            const totalRev = filtered.reduce((s, r) => s + r.totalValue, 0);
+            const totalEq = filtered.reduce((s, r) => s + r.equipment.reduce((ss, e) => ss + e.qty, 0), 0);
+
+            st.innerHTML = `
+                <div class="stat-chip"><div class="num">${filtered.length}</div><div class="lbl">Eventos</div></div>
+                <div class="stat-chip"><div class="num">${fmtBRL(totalRev)}</div><div class="lbl">Receita Total</div></div>
+                <div class="stat-chip"><div class="num">${totalEq}</div><div class="lbl">Itens Alugados</div></div>
+            `;
+
+            tl.innerHTML = filtered.map(r => `
+                <div class="event-card" data-status="${r.status}" onclick="viewRental(${r.id})">
+                    <div class="event-top">
+                        <div>
+                            <h3>${r.eventName}</h3>
+                        </div>
+                        <div class="event-value">${fmtBRL(r.totalValue)}</div>
+                    </div>
+                    <div class="event-details">
+                        <span>&#128100; ${r.client}</span>
+                        <span>&#128205; ${r.location}</span>
+                        <span>&#128197; ${fmtDate(r.date)}</span>
+                        <span>&#128336; ${r.timeStart}${r.timeEnd ? ' - ' + r.timeEnd : ''}</span>
+                        <span class="badge ${statusBadge(r.status)}">${r.status}</span>
+                    </div>
+                    <div class="event-material">&#128230; ${r.equipment.map(e => e.qty + 'x ' + e.name).join(', ')}</div>
+                </div>
+            `).join('');
+        }
+
+        // ===== DASHBOARD =====
+        function renderDashboard() {
+            const totalAvailable = inventory.reduce((s, eq) => s + eq.available, 0);
+            const activeRentals = rentals.filter(r => r.status === 'agendado' || r.status === 'em andamento').length;
+            const cm = new Date().toISOString().slice(0, 7);
+            const mr = rentals.filter(r => r.date && r.date.startsWith(cm)).reduce((s, r) => s + r.totalValue, 0);
+
+            document.getElementById('dash-total-equip').textContent = inventory.length;
+            document.getElementById('dash-available').textContent = totalAvailable;
+            document.getElementById('dash-active-rentals').textContent = activeRentals;
+            document.getElementById('dash-revenue').textContent = fmtBRL(mr);
+
+            const now = new Date().toISOString().slice(0, 10);
+            const upcoming = rentals
+                .filter(r => r.date >= now && r.status !== 'cancelado' && r.status !== 'concluido')
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .slice(0, 5);
+
+            const ec = document.getElementById('dashboard-events');
+            ec.innerHTML = upcoming.length ? upcoming.map(r => `
+                <div class="event-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+                    <div>
+                        <div style="font-weight:600;font-size:0.92rem;margin-bottom:2px">${r.eventName}</div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary)">${fmtDate(r.date)} &bull; ${r.location}</div>
+                    </div>
+                    <div style="font-weight:700;color:var(--green)">${fmtBRL(r.totalValue)}</div>
+                </div>
+            `).join('') : '<div class="empty-state"><div class="empty-icon">&#128197;</div><p>Nenhum evento proximo</p></div>';
+
+            const lowStock = inventory.filter(eq => eq.available < eq.qty * 0.3 && eq.status === 'disponivel');
+            const ls = document.getElementById('dashboard-low-stock');
+            ls.innerHTML = lowStock.length ? lowStock.map(eq => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+                    <div>
+                        <div style="font-weight:600;font-size:0.92rem">${eq.name}</div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary)">${eq.category}</div>
+                    </div>
+                    <div style="font-weight:700;color:var(--yellow)">${eq.available}/${eq.qty}</div>
+                </div>
+            `).join('') : '<div class="empty-state"><div class="empty-icon">&#9989;</div><p>Tudo em ordem</p></div>';
+        }
+
+        // ===== STATS =====
+        function updateStats() {
+            document.getElementById('stat-items').textContent = inventory.reduce((s, e) => s + e.qty, 0);
+            document.getElementById('stat-events').textContent = rentals.length;
+            document.getElementById('stat-revenue').textContent = fmtBRL(rentals.reduce((s, r) => s + r.totalValue, 0));
+        }
+
+        // ===== CLIENTS =====
+        function fillClientList() {
+            const dl = document.getElementById('client-list');
+            dl.innerHTML = clients.map(c => `<option value="${c.name}"></option>`).join('');
+        }
+
+        function fillClientFromList(name) {
+            const c = clients.find(x => x.name.toLowerCase() === name.toLowerCase());
+            if (c) {
+                document.getElementById('rent-phone').value = c.phone || '';
+            }
+        }
+
+        function addClient(e) {
+            e.preventDefault();
+            const cl = {
+                id: Date.now(),
+                type: document.getElementById('cl-type').value,
+                name: document.getElementById('cl-name').value.trim(),
+                doc: document.getElementById('cl-doc').value.trim(),
+                phone: document.getElementById('cl-phone').value.trim(),
+                whatsapp: document.getElementById('cl-whatsapp').value.trim(),
+                email: document.getElementById('cl-email').value.trim(),
+                instagram: document.getElementById('cl-instagram').value.trim(),
+                birth: document.getElementById('cl-birth').value,
+                address: document.getElementById('cl-address').value.trim(),
+                neighborhood: document.getElementById('cl-neighborhood').value.trim(),
+                city: document.getElementById('cl-city').value.trim(),
+                cep: document.getElementById('cl-cep').value.trim(),
+                sourced: document.getElementById('cl-sourced').value,
+                notes: document.getElementById('cl-notes').value.trim(),
+                createdAt: new Date().toISOString()
+            };
+            clients.push(cl);
+            save();
+            dbInsert('clients', cl);
+            document.getElementById('form-add-client').reset();
+            renderClients(); fillClientList();
+        }
+
+        function editClient(id) {
+            const cl = clients.find(x => x.id === id);
+            if (!cl) return;
+
+            const field = (label, idName, value, placeholder = '', type = 'text') => `
+                <div class="form-group" ${type === 'textarea' ? 'style="grid-column:span 2"' : ''}>
+                    <label>${label}</label>
+                    ${type === 'textarea'
+                        ? `<textarea id="${idName}" placeholder="${placeholder}">${escAttr(value)}</textarea>`
+                        : `<input type="${type}" id="${idName}" value="${escAttr(value)}" placeholder="${placeholder}">`}
+                </div>`;
+
+            const select = (label, idName, value, options) => `
+                <div class="form-group">
+                    <label>${label}</label>
+                    <select id="${idName}">
+                        ${options.map(o => `<option value="${o}" ${o === value ? 'selected' : ''}>${o}</option>`).join('')}
+                    </select>
+                </div>`;
+
+            const birthVal = cl.birth || '';
+            const notesVal = cl.notes || '';
+
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#9998; Editar Cliente</h2>
+                <form id="form-edit-client" onsubmit="saveClientEdits(${cl.id}); return false;">
+                    <div class="form-grid">
+                        ${select('Tipo', 'edit-cl-type', cl.type || 'Pessoa Fisica', ['Pessoa Fisica', 'Pessoa Juridica'])}
+                        ${field('Nome', 'edit-cl-name', cl.name || '', 'Nome completo')}
+                        ${field('CPF / CNPJ', 'edit-cl-doc', cl.doc || '', '000.000.000-00')}
+                        ${field('Telefone', 'edit-cl-phone', cl.phone || '', '(00) 00000-0000')}
+                        ${field('WhatsApp', 'edit-cl-whatsapp', cl.whatsapp || '', '(00) 00000-0000')}
+                        ${field('E-mail', 'edit-cl-email', cl.email || '', 'email@exemplo.com', 'email')}
+                        ${field('Instagram', 'edit-cl-instagram', cl.instagram || '', '@usuario')}
+                        ${field('Data de Nascimento', 'edit-cl-birth', birthVal, '', 'date')}
+                        ${field('Endereco', 'edit-cl-address', cl.address || '', 'Rua, numero')}
+                        ${field('Bairro', 'edit-cl-neighborhood', cl.neighborhood || '', 'Bairro')}
+                        ${field('Cidade', 'edit-cl-city', cl.city || '', 'Ex: Sao Paulo')}
+                        ${field('CEP', 'edit-cl-cep', cl.cep || '', '00000-000')}
+                        <div class="form-group">
+                            <label>Como Conheceu</label>
+                            <select id="edit-cl-sourced">
+                                <option value="" ${!cl.sourced ? 'selected' : ''}>Selecione...</option>
+                                ${['Indicacao', 'Instagram', 'Facebook', 'Google', 'Outro'].map(o =>
+                                    `<option value="${o}" ${o === cl.sourced ? 'selected' : ''}>${o}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        ${field('Observacoes', 'edit-cl-notes', notesVal, 'Observacoes', 'textarea')}
+                    </div>
+                    <div class="btn-group" style="justify-content: flex-end;">
+                        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-accent">&#10003; Salvar Alteracoes</button>
+                    </div>
+                </form>
+            `;
+            [['edit-cl-doc', maskDoc], ['edit-cl-phone', maskPhone], ['edit-cl-whatsapp', maskPhone], ['edit-cl-cep', maskCep]].forEach(([idn, fn]) => {
+                const el = document.getElementById(idn);
+                if (el) el.addEventListener('input', function() { fn(this); });
+            });
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function saveClientEdits(id) {
+            const cl = clients.find(x => x.id === id);
+            if (!cl) return;
+
+            const v = n => document.getElementById(n).value.trim();
+
+            cl.type = v('edit-cl-type');
+            cl.name = v('edit-cl-name');
+            cl.doc = v('edit-cl-doc');
+            cl.phone = v('edit-cl-phone');
+            cl.whatsapp = v('edit-cl-whatsapp');
+            cl.email = v('edit-cl-email');
+            cl.instagram = v('edit-cl-instagram');
+            cl.birth = document.getElementById('edit-cl-birth').value;
+            cl.address = v('edit-cl-address');
+            cl.neighborhood = v('edit-cl-neighborhood');
+            cl.city = v('edit-cl-city');
+            cl.cep = v('edit-cl-cep');
+            cl.sourced = document.getElementById('edit-cl-sourced').value;
+            cl.notes = v('edit-cl-notes');
+
+            save();
+            renderClients(); fillClientList();
+            closeModal();
+            dbUpdate('clients', cl);
+        }
+
+        function deleteClient(id) {
+            const cl = clients.find(x => x.id === id);
+            if (!cl) return;
+            const hasRentals = rentals.some(r => r.clientId === id);
+            const msg = hasRentals
+                ? `O cliente "${cl.name}" possui alugueis vinculados. Ainda assim deseja excluir? Os alugueis serao mantidos.`
+                : `Excluir o cliente "${cl.name}"?`;
+            if (!confirm(msg)) return;
+            clients = clients.filter(x => x.id !== id);
+            save(); renderClients(); fillClientList();
+            dbDelete('clients', id);
+        }
+
+        function viewClient(id) {
+            const cl = clients.find(x => x.id === id);
+            if (!cl) return;
+
+            const clRentals = rentals.filter(r => r.clientId === id);
+            const totalSpent = clRentals.reduce((s, r) => s + r.totalValue, 0);
+            const pendingValue = clRentals
+                .filter(r => r.status !== 'cancelado' && r.status !== 'concluido')
+                .reduce((s, r) => s + r.totalValue, 0);
+            const pendingCount = clRentals.filter(r => r.status !== 'cancelado' && r.status !== 'concluido').length;
+            const pendingPaid = clRentals
+                .filter(r => r.status !== 'cancelado' && r.status !== 'concluido')
+                .reduce((s, r) => s + r.deposit, 0);
+
+            const contactFields = [
+                [cl.type === 'Pessoa Juridica' ? 'CNPJ' : 'CPF', cl.doc || ''],
+                [cl.phone, 'Telefone'],
+                [cl.whatsapp, 'WhatsApp'],
+                [cl.email, 'E-mail'],
+                [cl.instagram, 'Instagram'],
+                [cl.birth ? fmtDate(cl.birth) : '', 'Nascimento'],
+                [cl.address, 'Endereco'],
+                [cl.neighborhood, 'Bairro'],
+                [cl.city, 'Cidade'],
+                [cl.cep, 'CEP']
+            ];
+            const contactInfo = contactFields
+                .filter(([val]) => val)
+                .map(([val, lbl]) =>
+                    `<div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">${lbl}</span><span>${val}</span></div>`
+                ).join('');
+            const sourcedInfo = cl.sourced ? `<div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">Como Conheceu</span><span>${cl.sourced}</span></div>` : '';
+
+            const rentRows = clRentals.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10).map(r =>
+                `<div class="summary-row">
+                    <span>${fmtDate(r.date)} &bull; ${r.eventName} <span class="badge ${statusBadge(r.status)}" style="margin-left:6px">${r.status}</span></span>
+                    <span>${fmtBRL(r.totalValue)}</span>
+                </div>`
+            ).join('');
+
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#128101; ${cl.name} <span class="badge badge-accent" style="font-size:0.65rem;vertical-align:middle">${cl.type || 'Pessoa Fisica'}</span></h2>
+                <div class="dash-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;">
+                    <div class="dash-card" style="padding: 15px;"><div class="dash-icon">&#128230;</div><div class="dash-number" style="font-size:1.4rem">${clRentals.length}</div><div class="dash-label">Alugueis</div></div>
+                    <div class="dash-card" style="padding: 15px;"><div class="dash-icon">&#128176;</div><div class="dash-number" style="font-size:1.4rem;color:var(--green)">${fmtBRL(totalSpent)}</div><div class="dash-label">Total Gasto</div></div>
+                    <div class="dash-card" style="padding: 15px;"><div class="dash-icon">&#9203;</div><div class="dash-number" style="font-size:1.4rem;color:var(--yellow)">${pendingCount}</div><div class="dash-label">Em Aberto (${fmtBRL(pendingValue - pendingPaid)})</div></div>
+                </div>
+                <div class="summary-box" style="margin-bottom: 18px;">
+                    <h3>&#128222; Contato</h3>
+                    ${contactInfo || '<div class="summary-row"><span style="color:var(--text-secondary)">Sem contatos cadastrados</span></div>'}
+                    ${sourcedInfo}
+                    ${cl.notes ? `<div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">Observacoes</span><span>${cl.notes}</span></div>` : ''}
+                </div>
+                ${clRentals.length ? `
+                <div class="summary-box">
+                    <h3>&#128197; Historico de Alugueis</h3>
+                    ${rentRows}
+                </div>` : '<div class="empty-state" style="padding:20px;"><p>Nenhum aluguel vinculado a este cliente</p></div>'}
+            `;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function renderClients() {
+            const search = document.getElementById('search-clients').value.toLowerCase();
+
+            let filtered = clients.filter(c => {
+                return c.name.toLowerCase().includes(search) ||
+                       (c.phone && c.phone.includes(search)) ||
+                       (c.city && c.city.toLowerCase().includes(search));
+            }).sort((a, b) => a.name.localeCompare(b.name));
+
+            const tbody = document.getElementById('clients-table');
+            const empty = document.getElementById('clients-empty');
+
+            if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = filtered.map(c => {
+                const clRentals = rentals.filter(r => r.clientId === c.id);
+                const totalSpent = clRentals.reduce((s, r) => s + r.totalValue, 0);
+                const lastDate = clRentals.length
+                    ? clRentals.sort((a, b) => new Date(b.date) - new Date(a.date))[0].date
+                    : null;
+
+                return `
+                <tr>
+                    <td class="td-name" style="cursor:pointer;color:var(--accent-2)" onclick="viewClient(${c.id})">${c.name}</td>
+                    <td>${c.phone || '-'}</td>
+                    <td>${c.city || '-'}</td>
+                    <td><span class="badge badge-accent">${clRentals.length}</span></td>
+                    <td><strong style="color:var(--green)">${fmtBRL(totalSpent)}</strong></td>
+                    <td>${lastDate ? fmtDate(lastDate) : '-'}</td>
+                    <td class="action-btns">
+                        <button class="btn btn-ghost btn-sm" onclick="viewClient(${c.id})" title="Ver ficha">&#128065;</button>
+                        <button class="btn btn-ghost btn-sm" onclick="editClient(${c.id})" title="Editar">&#9998;</button>
+                        <button class="btn btn-danger-ghost btn-sm" onclick="deleteClient(${c.id})" title="Excluir">&#10005;</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ===== HELPERS =====
+        function escAttr(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function fmtBRL(v) {
+            return parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function maskPhone(el) {
+            let v = el.value.replace(/\D/g, '').slice(0, 11);
+            if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+            else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{0,4})$/, '($1) $2-$3');
+            else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,5})$/, '($1) $2');
+            else if (v.length > 0) v = v.replace(/^(\d{0,2})/, '($1');
+            el.value = v;
+        }
+
+        function maskDoc(el) {
+            let v = el.value.replace(/\D/g, '').slice(0, 14);
+            if (v.length > 14) {
+                v = v.replace(/^(\d{2})(\d{3})(\d{4})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+            } else if (v.length > 12) {
+                v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})$/, '$1.$2.$3/$4-$5');
+            } else if (v.length > 11) {
+                v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})$/, '$1.$2.$3/$4');
+            } else if (v.length > 9) {
+                v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})$/, '$1.$2.$3-$4');
+            } else if (v.length > 7) {
+                v = v.replace(/^(\d{3})(\d{3})(\d{0,3})$/, '$1.$2.$3');
+            } else if (v.length > 3) {
+                v = v.replace(/^(\d{3})(\d{0,3})$/, '$1.$2');
+            }
+            el.value = v;
+        }
+
+        function maskCep(el) {
+            let v = el.value.replace(/\D/g, '').slice(0, 8);
+            if (v.length > 5) v = v.replace(/^(\d{5})(\d{0,3})$/, '$1-$2');
+            el.value = v;
+        }
+
+        function fmtDate(d) {
+            if (!d) return '-';
+            const [y, m, dd] = d.split('-');
+            return `${dd}/${m}/${y}`;
+        }
+
+        function statusBadge(s) {
+            return { 'agendado': 'badge-yellow', 'em andamento': 'badge-blue', 'concluido': 'badge-green', 'cancelado': 'badge-red' }[s] || 'badge-accent';
+        }
+
+        // ===== SETTINGS (titulo e tema) =====
+        function applyTitle() {
+            const t = (localStorage.getItem('sc_title') || '').trim();
+            const span1 = document.getElementById('app-title-1');
+            const span2 = document.getElementById('app-title-2');
+            if (!t) {
+                span1.textContent = 'Sound';
+                span2.textContent = 'Control';
+                document.title = 'SoundControl - Gestao de Som';
+                return;
+            }
+            const parts = t.split(/\s+/);
+            span1.textContent = parts[0];
+            span2.textContent = parts.slice(1).join(' ');
+            document.title = t + ' - Gestao de Som';
+        }
+
+        function editTitle() {
+            const t = (localStorage.getItem('sc_title') || '').trim();
+            const novo = prompt('Titulo do sistema:', t || 'SoundControl');
+            if (novo === null) return;
+            localStorage.setItem('sc_title', novo.trim());
+            applyTitle();
+        }
+
+        function applyTheme() {
+            const theme = localStorage.getItem('sc_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            const btn = document.getElementById('theme-toggle');
+            if (btn) btn.textContent = theme === 'dark' ? '\u{1F319}' : '\u{2600}\u{FE0F}';
+        }
+
+        function toggleTheme() {
+            const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            localStorage.setItem('sc_theme', theme);
+            applyTheme();
+        }
+
+        // ===== BACKUP =====
+        function downloadFile(content, filename, mime) {
+            const blob = new Blob([content], { type: mime || 'application/octet-stream' });
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function backupFilename(ext) {
+            const d = new Date();
+            const p = n => String(n).padStart(2, '0');
+            return 'soundcontrol-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + '.' + ext;
+        }
+
+        function exportBackup() {
+            const data = {
+                app: 'soundcontrol',
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                title: localStorage.getItem('sc_title') || '',
+                theme: localStorage.getItem('sc_theme') || 'dark',
+                inventory: inventory,
+                clients: clients,
+                rentals: rentals
+            };
+            downloadFile(JSON.stringify(data, null, 2), backupFilename('json'), 'application/json');
+        }
+
+        function importBackup(input) {
+            const file = input.files[0];
+            if (!file) return;
+            if (!confirm('Isso vai SUBSTITUIR todos os dados atuais pelos dados do backup. Continuar?')) {
+                input.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data || data.app !== 'soundcontrol' || !Array.isArray(data.inventory) || !Array.isArray(data.rentals)) {
+                        alert('Arquivo invalido. Use um backup gerado por este sistema.');
+                        input.value = '';
+                        return;
+                    }
+                    inventory = data.inventory || [];
+                    rentals = data.rentals || [];
+                    clients = Array.isArray(data.clients) ? data.clients : [];
+                    if (data.title !== undefined) localStorage.setItem('sc_title', data.title);
+                    if (data.theme !== undefined) localStorage.setItem('sc_theme', data.theme);
+                    save();
+                    applyTitle();
+                    applyTheme();
+                    fillClientList();
+                    renderInventory(); renderRentals(); renderClients(); renderEvents(); renderDashboard(); updateStats();
+                    emptyInventoryTable();
+                    if (dbOnline) { deleteAndRestoreDb(); }
+                    alert('Backup restaurado com sucesso!');
+                } catch (err) {
+                    alert('Erro ao ler o arquivo: ' + err.message);
+                }
+                input.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function emptyInventoryTable() {
+            const t = document.getElementById('inventory-table');
+            if (t) t.innerHTML = '';
+        }
+
+        function exportCSV(type) {
+            let rows;
+            let filename;
+            let headers;
+
+            if (type === 'inventory') {
+                headers = ['Nome', 'Categoria', 'Quantidade', 'Disponivel', 'Valor Unitario (R$)', 'Marca/Modelo', 'Status', 'Observacoes'];
+                rows = inventory.map(eq => [eq.name, eq.category, eq.qty, eq.available, (eq.value || 0).toFixed(2).replace('.', ','), eq.brand || '', eq.status, eq.notes || '']);
+                filename = backupFilename('estoque.csv');
+            } else if (type === 'clients') {
+                headers = ['Tipo', 'Nome', 'CPF/CNPJ', 'Telefone', 'WhatsApp', 'E-mail', 'Instagram', 'Nascimento', 'Endereco', 'Bairro', 'Cidade', 'CEP', 'Como Conheceu', 'Observacoes'];
+                rows = clients.map(c => [c.type || '', c.name, c.doc || '', c.phone || '', c.whatsapp || '', c.email || '', c.instagram || '', c.birth || '', c.address || '', c.neighborhood || '', c.city || '', c.cep || '', c.sourced || '', c.notes || '']);
+                filename = backupFilename('clientes.csv');
+            } else if (type === 'rentals') {
+                headers = ['Cliente', 'Telefone', 'Evento', 'Local', 'Data', 'Horario Inicio', 'Horario Fim', 'Valor Total (R$)', 'Sinal (R$)', 'Status', 'Observacoes', 'Material'];
+                rows = rentals.map(r => [r.client, r.phone || '', r.eventName, r.location, fmtDate(r.date), r.timeStart, r.timeEnd || '', r.totalValue.toFixed(2).replace('.', ','), (r.deposit || 0).toFixed(2).replace('.', ','), r.status, r.notes || '', r.equipment.map(e => e.qty + 'x ' + e.name).join('; ')]);
+                filename = backupFilename('alugueis.csv');
+            } else {
+                return;
+            }
+
+            const esc = v => {
+                const s = String(v == null ? '' : v);
+                return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            };
+            const csv = '\ufeff' + [headers, ...rows].map(row => row.map(esc).join(';')).join('\r\n');
+            downloadFile(csv, filename, 'text/csv;charset=utf-8;');
+        }
+
+        // ===== INIT =====
+        applyTitle();
+        applyTheme();
+        initDb();
+        updateDbStatus();
+        if (dbOnline) { (async () => { const loaded = await loadFromDb(); if (!loaded) await migrateLocalToDb(); })(); }
+        renderDashboard();
+        updateStats();
+        fillClientList();
+    </script>
+</body>
+</html>
