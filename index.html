@@ -606,6 +606,66 @@
             margin: -8px 0 14px;
         }
 
+        /* ===== STYLE PRESETS / LAYOUT ===== */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 22px 0;
+        }
+
+        .preset-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin: 0 0 12px;
+        }
+
+        .preset-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .preset-btn {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 14px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.3s;
+            font-family: inherit;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .preset-btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+
+        .preset-btn .p-name {
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .preset-dots { display: flex; gap: 4px; }
+
+        .preset-dots span {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .side-nav button .nav-label { display: block; }
+
         .dash-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1160,22 +1220,22 @@
                 <span class="nav-icon">&#128200;</span> Painel
             </button>
             <button data-page="inventory">
-                <span class="nav-icon">&#128230;</span> Estoque
+                <span class="nav-icon">&#128230;</span> <span class="nav-label">Estoque</span>
             </button>
             <button data-page="rentals">
-                <span class="nav-icon">&#128197;</span> Alugueis
+                <span class="nav-icon">&#128197;</span> <span class="nav-label">Alugueis</span>
             </button>
             <button data-page="clients">
-                <span class="nav-icon">&#128101;</span> Clientes
+                <span class="nav-icon">&#128101;</span> <span class="nav-label">Clientes</span>
             </button>
             <button data-page="events">
-                <span class="nav-icon">&#127751;</span> Eventos
+                <span class="nav-icon">&#127751;</span> <span class="nav-label">Eventos</span>
             </button>
             <button data-page="reports">
-                <span class="nav-icon">&#128202;</span> Relatorio
+                <span class="nav-icon">&#128202;</span> <span class="nav-label">Relatorio</span>
             </button>
             <button data-page="settings">
-                <span class="nav-icon">&#9881;</span> Configuracao
+                <span class="nav-icon">&#9881;</span> <span class="nav-label">Configuracao</span>
             </button>
             <div class="nav-footer">Gestao de Som</div>
         </nav>
@@ -1888,6 +1948,65 @@
                         <div class="form-group">
                             <label>Cor das bordas</label>
                             <input type="color" id="style-border" value="#ffffff">
+                        </div>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="preset-title">Temas prontos</div>
+                    <div class="preset-row">
+                        <button type="button" class="preset-btn" onclick="applyPreset('padrao')">
+                            <div class="p-name">Neon Roxo</div>
+                            <div class="preset-dots"><span style="background:#6c5ce7"></span><span style="background:#a855f7"></span><span style="background:#1a1a2e"></span></div>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyPreset('oceano')">
+                            <div class="p-name">Oceano</div>
+                            <div class="preset-dots"><span style="background:#0ea5e9"></span><span style="background:#2563eb"></span><span style="background:#0f2233"></span></div>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyPreset('mata')">
+                            <div class="p-name">Mata</div>
+                            <div class="preset-dots"><span style="background:#22c55e"></span><span style="background:#0ea5e9"></span><span style="background:#0f2417"></span></div>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyPreset('fogo')">
+                            <div class="p-name">Fogo</div>
+                            <div class="preset-dots"><span style="background:#f97316"></span><span style="background:#ef4444"></span><span style="background:#2a1208"></span></div>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyPreset('ambar')">
+                            <div class="p-name">Ambar</div>
+                            <div class="preset-dots"><span style="background:#f59e0b"></span><span style="background:#f97316"></span><span style="background:#241c10"></span></div>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyPreset('claro')">
+                            <div class="p-name">Claro</div>
+                            <div class="preset-dots"><span style="background:#6c5ce7"></span><span style="background:#7c3aed"></span><span style="background:#ffffff;border-color:rgba(0,0,0,0.3)"></span></div>
+                        </button>
+                    </div>
+                    <div class="preset-title">Layout geral</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Estilo do menu lateral</label>
+                            <select id="style-menu">
+                                <option value="padrao">Padrao (vidro)</option>
+                                <option value="gradiente">Gradiente</option>
+                                <option value="solido">Cor solida</option>
+                                <option value="compacto">Compacto (so icones)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Plano de fundo da pagina</label>
+                            <select id="style-bgtype">
+                                <option value="padrao">Padrao (neon suave)</option>
+                                <option value="liso">Liso</option>
+                                <option value="imagem">Imagem personalizada</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Imagem de fundo (URL)</label>
+                            <input type="text" id="style-bgimg" placeholder="https://exemplo.com/fundo.jpg">
+                        </div>
+                        <div class="form-group">
+                            <label>Densidade da tela</label>
+                            <select id="style-density">
+                                <option value="confortavel">Confortavel</option>
+                                <option value="compacto">Compacto</option>
+                            </select>
                         </div>
                     </div>
                     <div class="btn-group" style="flex-wrap:wrap;">
@@ -3663,7 +3782,8 @@ renderPieChart('dash-chart-pie', cats);
                 font: 'inter', fontSize: 16, radius: 16, cardStyle: 'padrao',
                 accent: '#6c5ce7', accent2: '#a855f7',
                 bg: dark ? '#0a0a0f' : '#f2f3f7', card: dark ? '#1a1a2e' : '#ffffff',
-                text: dark ? '#f0f0f5' : '#1a1a2e', border: dark ? '#ffffff' : '#000000'
+                text: dark ? '#f0f0f5' : '#1a1a2e', border: dark ? '#ffffff' : '#000000',
+                menu: 'padrao', bgType: 'padrao', bgImage: '', density: 'confortavel'
             };
             const get = function (id, key) {
                 const el = document.getElementById(id);
@@ -3679,6 +3799,10 @@ renderPieChart('dash-chart-pie', cats);
             get('style-card', 'card');
             get('style-text', 'text');
             get('style-border', 'border');
+            get('style-menu', 'menu');
+            get('style-bgtype', 'bgType');
+            get('style-bgimg', 'bgImage');
+            get('style-density', 'density');
         }
 
         function saveSettingsTitle() {
@@ -3730,6 +3854,30 @@ renderPieChart('dash-chart-pie', cats);
             return null;
         }
 
+        var STYLE_PRESETS = {
+            padrao: { accent: '#6c5ce7', accent2: '#a855f7', bg: '#0a0a0f', card: '#1a1a2e', text: '#f0f0f5', border: '#ffffff' },
+            oceano: { accent: '#0ea5e9', accent2: '#2563eb', bg: '#06121f', card: '#0f2233', text: '#e6f2ff', border: '#ffffff' },
+            mata: { accent: '#22c55e', accent2: '#0ea5e9', bg: '#07130b', card: '#0f2417', text: '#ecfdf3', border: '#ffffff' },
+            fogo: { accent: '#f97316', accent2: '#ef4444', bg: '#160a06', card: '#2a1208', text: '#ffefe4', border: '#ffffff' },
+            ambar: { accent: '#f59e0b', accent2: '#f97316', bg: '#14100a', card: '#241c10', text: '#fdf6e3', border: '#ffffff' },
+            claro: { accent: '#6c5ce7', accent2: '#7c3aed', bg: '#f2f3f7', card: '#ffffff', text: '#1a1a2e', border: '#000000' }
+        };
+
+        function applyPreset(key) {
+            const p = STYLE_PRESETS[key];
+            if (!p) return;
+            const cur = customStyleObj();
+            const next = {
+                font: cur.font, fontSize: cur.fontSize, radius: cur.radius, cardStyle: cur.cardStyle,
+                menu: cur.menu, bgType: cur.bgType, bgImage: cur.bgImage, density: cur.density,
+                accent: p.accent, accent2: p.accent2, bg: p.bg, card: p.card, text: p.text, border: p.border
+            };
+            Object.keys(next).forEach(k => { if (next[k] === undefined) delete next[k]; });
+            localStorage.setItem('sc_style', JSON.stringify(next));
+            applyCustomStyle();
+            renderSettings();
+        }
+
         function customStyleObj() {
             let s = {};
             try { s = JSON.parse(localStorage.getItem('sc_style') || '{}'); } catch (e) { s = {}; }
@@ -3773,6 +3921,27 @@ renderPieChart('dash-chart-pie', cats);
             } else if (cardStyle === 'translucido') {
                 rule += '.card, .dash-card { background: var(--bg-glass); backdrop-filter: blur(16px); }\n';
             }
+            if (s.menu === 'gradiente') {
+                const ga = s.accent || '#6c5ce7', gb = s.accent2 || '#a855f7';
+                rule += '.side-nav { background: linear-gradient(200deg, ' + ga + 'e8, ' + gb + '3d), var(--nav-bg); }\n';
+                rule += '.side-nav button.active { background: linear-gradient(135deg, ' + ga + ', ' + gb + '); color: #fff; border-left-color: transparent; }\n';
+            } else if (s.menu === 'solido') {
+                const mrgb = hexToRgb(s.card || '#1a1a2e');
+                if (mrgb) rule += '.side-nav { background: rgb(' + mrgb.join(',') + '); }\n';
+            } else if (s.menu === 'compacto') {
+                rule += '.side-nav { width: 68px !important; flex: 0 0 68px !important; align-items: center; padding: 20px 8px; }\n';
+                rule += '.side-nav button { justify-content: center; padding: 13px 4px; }\n';
+                rule += '.side-nav button .nav-label, .side-nav .nav-footer { display: none; }\n';
+            }
+            if (s.bgType === 'liso') {
+                rule += 'body::before { background: var(--bg); }\n';
+            } else if (s.bgType === 'imagem' && s.bgImage) {
+                const img = s.bgImage.replace(/"/g, '\\"');
+                rule += 'body::before { background: url("' + img + '") center / cover fixed no-repeat; }\n';
+            }
+            if (s.density === 'compacto') {
+                rule += '.container { padding: 18px; } .card { padding: 18px; margin-bottom: 14px; } .dash-card { padding: 16px; } .stat-pill { padding: 6px 12px; }\n';
+            }
             let st = document.getElementById('custom-style');
             if (!st) { st = document.createElement('style'); st.id = 'custom-style'; document.head.appendChild(st); }
             st.textContent = rule;
@@ -3789,7 +3958,11 @@ renderPieChart('dash-chart-pie', cats);
                 bg: document.getElementById('style-bg').value,
                 card: document.getElementById('style-card').value,
                 text: document.getElementById('style-text').value,
-                border: document.getElementById('style-border').value
+                border: document.getElementById('style-border').value,
+                menu: document.getElementById('style-menu').value,
+                bgType: document.getElementById('style-bgtype').value,
+                bgImage: document.getElementById('style-bgimg').value.trim(),
+                density: document.getElementById('style-density').value
             };
             localStorage.setItem('sc_style', JSON.stringify(s));
             applyCustomStyle();
