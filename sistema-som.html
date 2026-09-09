@@ -594,6 +594,18 @@
             letter-spacing: 0.8px;
         }
 
+        .dash-sum-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin: -8px 0 14px;
+        }
+
         .dash-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1191,6 +1203,25 @@
                         <div class="dash-icon">&#128176;</div>
                         <div class="dash-number" id="dash-revenue">R$ 0</div>
                         <div class="dash-label">Receita do Mes</div>
+                    </div>
+                </div>
+
+                <div class="dash-sum-title">Somas dos Alugueis</div>
+                <div class="dash-grid">
+                    <div class="dash-card">
+                        <div class="dash-icon">&#128179;</div>
+                        <div class="dash-number" id="dash-sum-total">R$ 0</div>
+                        <div class="dash-label">Valor Total</div>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-icon">&#9989;</div>
+                        <div class="dash-number" id="dash-sum-received" style="color:var(--green)">R$ 0</div>
+                        <div class="dash-label">Recebido</div>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-icon">&#9203;</div>
+                        <div class="dash-number" id="dash-sum-toreceive" style="color:var(--yellow)">R$ 0</div>
+                        <div class="dash-label">A Receber</div>
                     </div>
                 </div>
 
@@ -3041,6 +3072,13 @@
             document.getElementById('dash-available').textContent = totalAvailable;
             document.getElementById('dash-active-rentals').textContent = activeRentals;
             document.getElementById('dash-revenue').textContent = fmtBRL(mr);
+
+            const sumRents = rentals.filter(r => r.status !== 'cancelado');
+            const sumTotal = sumRents.reduce((s, r) => s + (r.totalValue || 0), 0);
+            const sumReceived = sumRents.reduce((s, r) => s + (r.deposit || 0), 0);
+            document.getElementById('dash-sum-total').textContent = fmtBRL(sumTotal);
+            document.getElementById('dash-sum-received').textContent = fmtBRL(sumReceived);
+            document.getElementById('dash-sum-toreceive').textContent = fmtBRL(Math.max(0, sumTotal - sumReceived));
 
             const now = new Date().toISOString().slice(0, 10);
             const upcoming = rentals
