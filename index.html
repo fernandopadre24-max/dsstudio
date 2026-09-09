@@ -210,39 +210,60 @@
         }
 
         /* ===== CALCULATOR ===== */
-        .calc-wrap { max-width: 300px; margin: 0 auto; }
+        .calc-wrap { max-width: 320px; margin: 0 auto; }
 
-        .calc-screen {
+        .calc-body {
             background: var(--input-bg);
             border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+        }
+
+        .calc-screen {
+            background: var(--modal-bg);
+            border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 14px 16px;
-            text-align: right;
-            font-size: 1.5rem;
-            font-weight: 700;
+            padding: 12px 16px;
             margin-bottom: 12px;
-            min-height: 58px;
+            text-align: right;
+        }
+
+        .calc-expr {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            min-height: 16px;
             word-break: break-all;
-            overflow: hidden;
+        }
+
+        .calc-result {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.5px;
+            word-break: break-all;
         }
 
         .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 
         .calc-btn {
-            background: var(--input-bg);
+            background: var(--option-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 14px 0;
-            font-size: 1.05rem;
+            padding: 13px 0;
+            font-size: 0.95rem;
             cursor: pointer;
             color: var(--text);
             font-family: inherit;
             font-weight: 600;
-            transition: all 0.2s;
+            transition: all 0.15s;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.25);
         }
 
-        .calc-btn:hover { border-color: var(--accent); background: var(--input-bg-focus); }
-        .calc-op { color: var(--accent-2); }
+        .calc-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+        .calc-btn:active { transform: translateY(1px); box-shadow: none; }
+        .calc-op { background: rgba(108,92,231,0.18); color: var(--accent-2); }
+        .calc-fn { background: var(--bg-card); color: var(--text-secondary); font-size: 0.8rem; }
         .calc-clear { color: var(--red); }
 
         /* ===== CALENDAR ===== */
@@ -272,6 +293,23 @@
             font-size: 0.85rem;
             color: var(--text-secondary);
         }
+
+        .cal-events { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; max-height: 220px; overflow-y: auto; }
+        .cal-event {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .cal-event:hover { background: var(--hover-bg); }
+        .cal-event .ce-date { font-weight: 700; color: var(--accent-2); min-width: 74px; }
+        .cal-event .ce-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+        .cal-event .ce-val { font-weight: 700; color: var(--green); white-space: nowrap; }
+        .cal-events-empty { font-size: 0.8rem; color: var(--text-secondary); padding: 8px 0; }
 
         /* ===== LAYOUT + NAV LATERAL ===== */
         .layout {
@@ -4205,17 +4243,35 @@ renderPieChart('dash-chart-pie', cats);
         let calcExpr = '';
 
         function openCalculator() {
-            const keys = ['C', '+/-', '%', '÷', '7', '8', '9', '×', '4', '5', '6', '−', '1', '2', '3', '+', '0', '.', '⌫', '='];
-            const grid = keys.map(k => {
-                const cls = ['÷', '×', '−', '+', '='].indexOf(k) >= 0 ? 'calc-op' : (k === 'C' ? 'calc-clear' : '');
-                const ev = k === "÷" ? '÷' : (k === '×' ? '×' : (k === '−' ? '−' : k === '=' ? '=' : k));
-                return '<button type="button" class="calc-btn ' + cls + '" onclick="calcPress(' + "'" + ev + "'" + ')">' + k + '</button>';
+            const rows = [
+                ['%', 'CE', 'C', '⌫'],
+                ['1/x', 'x²', '√', '÷'],
+                ['7', '8', '9', '×'],
+                ['4', '5', '6', '−'],
+                ['1', '2', '3', '+'],
+                ['+/-', '0', '.', '=']
+            ];
+            const cls = function (k) {
+                if (['÷', '×', '−', '+', '='].indexOf(k) >= 0) return ' calc-op';
+                if (k === 'C' || k === 'CE') return ' calc-clear';
+                if (['%', '1/x', 'x²', '√'].indexOf(k) >= 0) return ' calc-fn';
+                return '';
+            };
+            const grid = rows.map(function (row) {
+                return row.map(function (k) {
+                    return '<button type="button" class="calc-btn' + cls(k) + '" onclick="calcPress(' + "'" + k + "'" + ')">' + k + '</button>';
+                }).join('');
             }).join('');
             document.getElementById('modal-content').innerHTML = `
                 <h2>&#129518; Calculadora</h2>
                 <div class="calc-wrap">
-                    <div class="calc-screen" id="calc-screen">0</div>
-                    <div class="calc-grid">${grid}</div>
+                    <div class="calc-body">
+                        <div class="calc-screen">
+                            <div class="calc-expr" id="calc-expr">&nbsp;</div>
+                            <div class="calc-result" id="calc-result">0</div>
+                        </div>
+                        <div class="calc-grid">${grid}</div>
+                    </div>
                 </div>`;
             calcExpr = '';
             document.getElementById('modal-bg').classList.add('active');
@@ -4223,41 +4279,75 @@ renderPieChart('dash-chart-pie', cats);
 
         function calcExprEval(expr) {
             const e = String(expr).replace(/÷/g, '/').replace(/×/g, '*').replace(/−/g, '-');
-            if (!/^[\d.+\-*/\s]+$/.test(e) || /[\+\-*/][\+\-*/]/.test(e)) throw new Error('syntax');
+            if (!/^[\d.+\-*/\s]+$/.test(e)) throw new Error('syntax');
             return Function('"use strict"; return (' + e + ')')();
         }
 
+        function calcPreview(expr) {
+            if (!expr) return '';
+            try { return String(calcExprEval(expr)); } catch (e) { return ''; }
+        }
+
+        function calcPaint() {
+            const er = document.getElementById('calc-expr');
+            const rr = document.getElementById('calc-result');
+            if (!er || !rr) return;
+            er.textContent = calcExpr || '\u00A0';
+            const p = calcPreview(calcExpr);
+            rr.textContent = p !== '' ? p : '0';
+        }
+
         function calcPress(k) {
-            const scr = document.getElementById('calc-screen');
-            if (!scr) return;
-            if (k === 'C') { calcExpr = ''; scr.textContent = '0'; return; }
-            if (k === '⌫') { calcExpr = calcExpr.slice(0, -1); scr.textContent = calcExpr || '0'; return; }
+            const rr = document.getElementById('calc-result');
+            if (!rr) return;
+            if (k === 'C' || k === 'CE') { calcExpr = ''; calcPaint(); return; }
+            if (k === '⌫') { calcExpr = calcExpr.slice(0, -1); calcPaint(); return; }
             if (k === '=') {
                 if (!calcExpr) return;
-                try { const res = calcExprEval(calcExpr); scr.textContent = res; calcExpr = String(res); }
-                catch (e) { scr.textContent = 'Erro'; calcExpr = ''; }
+                try { const res = String(calcExprEval(calcExpr)); calcExpr = res; calcPaint(); }
+                catch (e) { rr.textContent = 'Erro'; calcExpr = ''; }
                 return;
             }
             if (k === '+/-') {
                 calcExpr = calcExpr.startsWith('-') ? calcExpr.slice(1) : (calcExpr ? '-' + calcExpr : '');
-                scr.textContent = calcExpr || '0';
+                calcPaint();
                 return;
             }
             if (k === '%') {
                 if (!calcExpr) return;
-                try { calcExpr = String(calcExprEval(calcExpr) / 100); scr.textContent = calcExpr; }
-                catch (e) { scr.textContent = 'Erro'; calcExpr = ''; }
+                calcExpr = String(calcExprEval(calcExpr) / 100);
+                calcPaint();
+                return;
+            }
+            if (k === '1/x') {
+                if (!calcExpr) return;
+                const v = calcExprEval(calcExpr);
+                calcExpr = v !== 0 ? String(1 / v) : 'Erro';
+                calcPaint();
+                return;
+            }
+            if (k === 'x²') {
+                if (!calcExpr) return;
+                calcExpr = String(Math.pow(calcExprEval(calcExpr), 2));
+                calcPaint();
+                return;
+            }
+            if (k === '√') {
+                if (!calcExpr) return;
+                calcExpr = String(Math.sqrt(calcExprEval(calcExpr)));
+                calcPaint();
                 return;
             }
             const ops = ['÷', '×', '−', '+'];
             const last = calcExpr.slice(-1);
             if (ops.indexOf(k) >= 0) {
+                if (!calcExpr) calcExpr = '0';
                 if (ops.indexOf(last) >= 0) calcExpr = calcExpr.slice(0, -1);
                 calcExpr += k;
             } else {
                 calcExpr += k;
             }
-            scr.textContent = calcExpr;
+            calcPaint();
         }
 
         let calYear = 0, calMonth = 0;
@@ -4303,7 +4393,17 @@ renderPieChart('dash-chart-pie', cats);
                     ${['Seg','Ter','Qua','Qui','Sex','Sab','Dom'].map(d => '<div class="cal-cell cal-dayname">' + d + '</div>').join('')}
                     ${cells}
                 </div>
-                <div class="cal-total">Receita do mes: <strong>${fmtBRL(totalMonth)}</strong> &bull; <strong>${monthRents.length}</strong> eventos</div>`;
+                <div class="cal-total">Receita do mes: <strong>${fmtBRL(totalMonth)}</strong> &bull; <strong>${monthRents.length}</strong> eventos</div>
+                <div class="cal-events">
+                    ${monthRents.length
+                        ? monthRents.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(r =>
+                            '<div class="cal-event" onclick="closeModal(); viewRental(' + r.id + ')">' +
+                                '<span class="ce-date">' + fmtDate(r.date) + '</span>' +
+                                '<span class="ce-name">' + r.eventName + '</span>' +
+                                '<span class="ce-val">' + fmtBRL(r.totalValue) + '</span>' +
+                            '</div>').join('')
+                        : '<div class="cal-events-empty">Nenhum evento cadastrado neste mes</div>'}
+                </div>`;
             document.getElementById('modal-bg').classList.add('active');
         }
 
