@@ -1363,6 +1363,9 @@
             <button data-page="clients">
                 <span class="nav-icon">&#128101;</span> <span class="nav-label">Clientes</span>
             </button>
+            <button data-page="suppliers">
+                <span class="nav-icon">&#128666;</span> <span class="nav-label">Fornecedores</span>
+            </button>
             <button data-page="events">
                 <span class="nav-icon">&#127751;</span> <span class="nav-label">Eventos</span>
             </button>
@@ -1884,6 +1887,92 @@
                 </div>
             </div>
 
+            <!-- SUPPLIERS -->
+            <div id="page-suppliers" class="page">
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#10133;</div> Cadastrar Fornecedor
+                    </div>
+                    <form id="form-add-supplier" onsubmit="addSupplier(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nome / Empresa</label>
+                                <input type="text" id="sp-name" required placeholder="Nome do fornecedor">
+                            </div>
+                            <div class="form-group">
+                                <label>CNPJ</label>
+                                <input type="text" id="sp-cnpj" placeholder="00.000.000/0000-00" oninput="maskDoc(this)">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="text" id="sp-phone" placeholder="(00) 00000-0000" oninput="maskPhone(this)">
+                            </div>
+                            <div class="form-group">
+                                <label>WhatsApp</label>
+                                <input type="text" id="sp-whatsapp" placeholder="(00) 00000-0000" oninput="maskPhone(this)">
+                            </div>
+                            <div class="form-group">
+                                <label>E-mail</label>
+                                <input type="email" id="sp-email" placeholder="email@exemplo.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Cidade</label>
+                                <input type="text" id="sp-city" placeholder="Ex: Sao Paulo">
+                            </div>
+                            <div class="form-group">
+                                <label>Endereco</label>
+                                <input type="text" id="sp-address" placeholder="Rua, numero, bairro">
+                            </div>
+                            <div class="form-group">
+                                <label>Categorias que fornece</label>
+                                <input type="text" id="sp-categories" placeholder="Ex: Caixas, Sub, Microfones">
+                            </div>
+                            <div class="form-group">
+                                <label>Site / Instagram</label>
+                                <input type="text" id="sp-site" placeholder="https://... ou @usuario">
+                            </div>
+                            <div class="form-group">
+                                <label>Observacoes</label>
+                                <input type="text" id="sp-notes" placeholder="Ex: Prazo de entrega, condicoes de pagamento...">
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-accent">&#10133; Cadastrar Fornecedor</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128666;</div> Fornecedores Cadastrados
+                    </div>
+                    <div class="search-bar">
+                        <input type="text" id="search-suppliers" placeholder="Buscar fornecedor..." oninput="renderSuppliers()">
+                        <select id="filter-supplier-city" onchange="renderSuppliers()">
+                            <option value="">Todas as cidades</option>
+                        </select>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fornecedor</th>
+                                    <th>Contato</th>
+                                    <th>Cidade</th>
+                                    <th>Fornece</th>
+                                    <th>Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suppliers-table"></tbody>
+                        </table>
+                    </div>
+                    <div id="suppliers-empty" class="empty-state" style="display:none;">
+                        <div class="empty-icon">&#128666;</div>
+                        <p>Nenhum fornecedor cadastrado</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- EVENTS -->
             <div id="page-events" class="page">
                 <div class="card">
@@ -2200,6 +2289,7 @@
         let inventory = JSON.parse(localStorage.getItem('sc_inventory') || '[]');
         let rentals = JSON.parse(localStorage.getItem('sc_rentals') || '[]');
         let clients = JSON.parse(localStorage.getItem('sc_clients') || '[]');
+        let suppliers = JSON.parse(localStorage.getItem('sc_suppliers') || '[]');
 
         let editingRentalId = null;
         let editingEqId = null;
@@ -2252,7 +2342,7 @@
 
         async function loadFromDb(onlyIfEmpty) {
             if (!dbOnline || !db) return false;
-            const hasLocal = inventory.length || rentals.length || clients.length;
+            const hasLocal = inventory.length || rentals.length || clients.length || suppliers.length;
             if (onlyIfEmpty && hasLocal) return false;
             try {
                 const i = await db.from('inventory').select('*').order('id', { ascending: true });
@@ -2261,16 +2351,20 @@
                 if (r.error) throw r.error;
                 const c = await db.from('clients').select('*').order('id', { ascending: true });
                 if (c.error) throw c.error;
-                if (!i.data.length && !r.data.length && !c.data.length) return false;
+                const sp = await db.from('suppliers').select('*').order('id', { ascending: true });
+                if (sp.error) throw sp.error;
+                if (!i.data.length && !r.data.length && !c.data.length && !sp.data.length) return false;
                 inventory = i.data || [];
                 rentals = r.data || [];
                 clients = c.data || [];
+                suppliers = sp.data || [];
                 save();
                 renderDashboard(); updateStats(); fillClientList();
                 if (document.getElementById('page-inventory').classList.contains('active')) renderInventory();
                 if (document.getElementById('page-rentals').classList.contains('active')) { renderRentals(); renderEquipmentSelector(); }
                 if (document.getElementById('page-clients').classList.contains('active')) renderClients();
                 if (document.getElementById('page-events').classList.contains('active')) renderEvents();
+                if (document.getElementById('page-suppliers').classList.contains('active')) renderSuppliers();
                 return true;
             } catch (e) {
                 console.warn('load db', e);
@@ -2284,6 +2378,7 @@
                 if (inventory.length) for (const eq of inventory) await db.from('inventory').upsert(eq);
                 if (clients.length) for (const cl of clients) await db.from('clients').upsert(cl);
                 if (rentals.length) for (const r of rentals) await db.from('rentals').upsert(r);
+                if (suppliers.length) for (const sp of suppliers) await db.from('suppliers').upsert(sp);
             } catch (e) { console.warn('migrate', e); }
         }
 
@@ -2293,6 +2388,7 @@
                 await db.from('inventory').delete().gte('id', 0);
                 await db.from('clients').delete().gte('id', 0);
                 await db.from('rentals').delete().gte('id', 0);
+                await db.from('suppliers').delete().gte('id', 0);
                 await migrateLocalToDb();
             } catch (e) { console.warn('restore db', e); }
         }
@@ -2356,6 +2452,7 @@
                 localStorage.setItem('sc_inventory', JSON.stringify(inventory));
                 localStorage.setItem('sc_rentals', JSON.stringify(rentals));
                 localStorage.setItem('sc_clients', JSON.stringify(clients));
+                localStorage.setItem('sc_suppliers', JSON.stringify(suppliers));
             } catch (e) {
                 console.warn('armazenamento indisponivel', e);
             }
@@ -2390,6 +2487,7 @@
             if (page === 'inventory') renderInventory();
             if (page === 'rentals') { renderRentals(); renderEquipmentSelector(); }
             if (page === 'clients') renderClients();
+            if (page === 'suppliers') renderSuppliers();
             if (page === 'events') renderEvents();
             if (page === 'reports') renderReports();
             if (page === 'settings') renderSettings();
@@ -2901,6 +2999,7 @@
             if (type === 'rental') doDeleteRental(id);
             else if (type === 'equipment') doDeleteEquipment(id);
             else if (type === 'client') doDeleteClient(id);
+            else if (type === 'supplier') doDeleteSupplier(id);
             else if (type === 'cancel') doCancelRental(id);
             else if (type === 'return') doReturnEquipment(id);
         }
@@ -3654,6 +3753,181 @@ renderPieChart('dash-chart-pie', cats);
             }).join('');
         }
 
+        // ===== SUPPLIERS =====
+        function addSupplier(e) {
+            e.preventDefault();
+            const sp = {
+                id: Date.now(),
+                name: document.getElementById('sp-name').value.trim(),
+                cnpj: document.getElementById('sp-cnpj').value.trim(),
+                phone: document.getElementById('sp-phone').value.trim(),
+                whatsapp: document.getElementById('sp-whatsapp').value.trim(),
+                email: document.getElementById('sp-email').value.trim(),
+                city: document.getElementById('sp-city').value.trim(),
+                address: document.getElementById('sp-address').value.trim(),
+                categories: document.getElementById('sp-categories').value.trim(),
+                site: document.getElementById('sp-site').value.trim(),
+                notes: document.getElementById('sp-notes').value.trim(),
+                createdAt: new Date().toISOString()
+            };
+            suppliers.push(sp);
+            save();
+            dbInsert('suppliers', sp);
+            document.getElementById('form-add-supplier').reset();
+            renderSuppliers();
+        }
+
+        function renderSuppliers() {
+            const search = document.getElementById('search-suppliers').value.toLowerCase();
+            const fc = document.getElementById('filter-supplier-city').value;
+
+            const opts = suppliers.map(s => s.city || '').filter(Boolean)
+                .filter((v, i, a) => a.indexOf(v) === i)
+                .map(c => `<option value="${c}" ${c === fc ? 'selected' : ''}>${c}</option>`).join('');
+            const sel = document.getElementById('filter-supplier-city');
+            if (sel) sel.innerHTML = '<option value="">Todas as cidades</option>' + opts;
+
+            let filtered = suppliers.filter(s => {
+                const ms = s.name.toLowerCase().includes(search) ||
+                       (s.phone && s.phone.includes(search)) ||
+                       (s.categories && s.categories.toLowerCase().includes(search));
+                const mc = !fc || s.city === fc;
+                return ms && mc;
+            }).sort((a, b) => a.name.localeCompare(b.name));
+
+            const tbody = document.getElementById('suppliers-table');
+            const empty = document.getElementById('suppliers-empty');
+
+            if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = filtered.map(s => {
+                if (confirmDel && confirmDel.type === 'supplier' && confirmDel.id === s.id) {
+                    return confirmStripRowHTML('supplier', s.id, 'Excluir este fornecedor?', 'danger');
+                }
+                return `
+                <tr>
+                    <td class="td-name" style="cursor:pointer;color:var(--accent-2)" onclick="viewSupplier(${s.id})">${s.name}</td>
+                    <td class="td-contato">
+                        ${s.phone ? '<div>' + s.phone + '</div>' : ''}
+                        ${s.whatsapp ? '<div style="color:var(--green)">' + s.whatsapp + ' (WhatsApp)</div>' : ''}
+                        ${s.email ? '<div style="font-size:0.75rem;color:var(--text-secondary)">' + s.email + '</div>' : ''}
+                    </td>
+                    <td>${s.city || '-'}</td>
+                    <td>${s.categories ? '<span class="badge badge-accent">' + escAttr(s.categories).replace(/,/g, '</span> <span class="badge badge-accent">') + '</span>' : '-'}</td>
+                    <td class="action-btns">
+                        <button class="btn btn-ghost btn-sm" onclick="viewSupplier(${s.id})" title="Ver ficha">&#128065;</button>
+                        <button class="btn btn-ghost btn-sm" onclick="editSupplier(${s.id})" title="Editar">&#9998;</button>
+                        <button class="btn btn-danger-ghost btn-sm" onclick="requestDeleteSupplier(${s.id})" title="Excluir">&#10005;</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function requestDeleteSupplier(id) {
+            confirmDel = { type: 'supplier', id: id };
+            refreshCurrentPage();
+        }
+
+        function doDeleteSupplier(id) {
+            suppliers = suppliers.filter(x => x.id !== id);
+            save(); renderSuppliers();
+            refreshCurrentPage();
+            dbDelete('suppliers', id);
+        }
+
+        function editSupplier(id) {
+            const sp = suppliers.find(x => x.id === id);
+            if (!sp) return;
+
+            const field = (label, idName, value, placeholder = '', type = 'text') => `
+                <div class="form-group">
+                    <label>${label}</label>
+                    <input type="${type}" id="${idName}" value="${escAttr(value)}" placeholder="${placeholder}">
+                </div>`;
+            const textarea = (label, idName, value, placeholder = '') => `
+                <div class="form-group" style="grid-column:span 2">
+                    <label>${label}</label>
+                    <textarea id="${idName}" placeholder="${placeholder}">${escAttr(value)}</textarea>
+                </div>`;
+
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#9998; Editar Fornecedor</h2>
+                <form id="form-edit-supplier" onsubmit="saveSupplierEdits(${sp.id}); return false;">
+                    <div class="form-grid">
+                        ${field('Nome / Empresa', 'edit-sp-name', sp.name || '', 'Nome do fornecedor')}
+                        ${field('CNPJ', 'edit-sp-cnpj', sp.cnpj || '', '00.000.000/0000-00')}
+                        ${field('Telefone', 'edit-sp-phone', sp.phone || '', '(00) 00000-0000')}
+                        ${field('WhatsApp', 'edit-sp-whatsapp', sp.whatsapp || '', '(00) 00000-0000')}
+                        ${field('E-mail', 'edit-sp-email', sp.email || '', 'email@exemplo.com', 'email')}
+                        ${field('Cidade', 'edit-sp-city', sp.city || '', 'Ex: Sao Paulo')}
+                        ${field('Endereco', 'edit-sp-address', sp.address || '', 'Rua, numero, bairro')}
+                        ${field('Categorias que fornece', 'edit-sp-categories', sp.categories || '', 'Ex: Caixas, Sub, Microfones')}
+                        ${field('Site / Instagram', 'edit-sp-site', sp.site || '', 'https://... ou @usuario')}
+                        ${textarea('Observacoes', 'edit-sp-notes', sp.notes || '', 'Ex: Prazo de entrega, condicoes...')}
+                    </div>
+                    <div class="btn-group" style="justify-content: flex-end;">
+                        <button type="button" class="btn btn-danger-ghost" onclick="requestDeleteSupplier(${sp.id}); closeModal()">&#128465; Excluir</button>
+                        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-accent">&#10003; Salvar Alteracoes</button>
+                    </div>
+                </form>
+            `;
+            [['edit-sp-phone', maskPhone], ['edit-sp-whatsapp', maskPhone], ['edit-sp-cnpj', maskDoc]].forEach(function (p) {
+                const el = document.getElementById(p[0]);
+                if (el) el.addEventListener('input', function () { p[1](this); });
+            });
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function saveSupplierEdits(id) {
+            const sp = suppliers.find(x => x.id === id);
+            if (!sp) return;
+            const v = n => document.getElementById(n).value.trim();
+            sp.name = v('edit-sp-name');
+            sp.cnpj = v('edit-sp-cnpj');
+            sp.phone = v('edit-sp-phone');
+            sp.whatsapp = v('edit-sp-whatsapp');
+            sp.email = v('edit-sp-email');
+            sp.city = v('edit-sp-city');
+            sp.address = v('edit-sp-address');
+            sp.categories = v('edit-sp-categories');
+            sp.site = v('edit-sp-site');
+            sp.notes = v('edit-sp-notes');
+            save();
+            renderSuppliers();
+            closeModal();
+            dbUpdate('suppliers', sp);
+        }
+
+        function viewSupplier(id) {
+            const sp = suppliers.find(x => x.id === id);
+            if (!sp) return;
+
+            const row = (lbl, val) => val
+                ? `<div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">${lbl}</span><span>${val}</span></div>`
+                : '';
+            const cats = (sp.categories || '').split(',').map(c => c.trim()).filter(Boolean);
+
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#128666; ${escAttr(sp.name)}</h2>
+                <div class="summary-box">
+                    ${row('CNPJ', sp.cnpj)}
+                    ${row('Telefone', sp.phone)}
+                    ${row('WhatsApp', sp.whatsapp)}
+                    ${row('E-mail', sp.email)}
+                    ${row('Cidade', sp.city)}
+                    ${row('Endereco', sp.address)}
+                    ${row('Site / Instagram', sp.site)}
+                </div>
+                ${cats.length ? '<div style="margin:4px 0 14px;">' + cats.map(c => '<span class="badge badge-accent" style="margin-right:6px;margin-bottom:6px;">' + escAttr(c) + '</span>').join('') + '</div>' : ''}
+                ${sp.notes ? '<div class="summary-box"><div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">Observacoes</span><span>' + escAttr(sp.notes) + '</span></div></div>' : ''}
+                <div class="btn-group" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-ghost" onclick="editSupplier(${sp.id})">&#9998; Editar</button>
+                </div>`;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
         // ===== HELPERS =====
         function escAttr(s) {
             return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -4146,7 +4420,8 @@ renderPieChart('dash-chart-pie', cats);
                 style: localStorage.getItem('sc_style') || '',
                 inventory: inventory,
                 clients: clients,
-                rentals: rentals
+                rentals: rentals,
+                suppliers: suppliers
             };
             downloadFile(JSON.stringify(data, null, 2), backupFilename('json'), 'application/json');
         }
@@ -4177,6 +4452,7 @@ renderPieChart('dash-chart-pie', cats);
                     inventory = data.inventory || [];
                     rentals = data.rentals || [];
                     clients = Array.isArray(data.clients) ? data.clients : [];
+                    suppliers = Array.isArray(data.suppliers) ? data.suppliers : [];
                     if (data.title !== undefined) localStorage.setItem('sc_title', data.title);
                     if (data.theme !== undefined) localStorage.setItem('sc_theme', data.theme);
                     if (data.style) localStorage.setItem('sc_style', data.style);
@@ -4186,6 +4462,7 @@ renderPieChart('dash-chart-pie', cats);
                     applyCustomStyle();
                     fillClientList();
                     renderInventory(); renderRentals(); renderClients(); renderEvents(); renderDashboard(); updateStats();
+                    renderSuppliers();
                     emptyInventoryTable();
                     if (dbOnline) { deleteAndRestoreDb(); }
                     alert('Backup restaurado com sucesso!');
@@ -4428,7 +4705,7 @@ renderPieChart('dash-chart-pie', cats);
         updateDbStatus();
         if (dbOnline) { (async () => {
             const loaded = await loadFromDb(true);
-            if (!loaded && (inventory.length || rentals.length || clients.length)) await migrateLocalToDb();
+            if (!loaded && (inventory.length || rentals.length || clients.length || suppliers.length)) await migrateLocalToDb();
         })(); }
         renderDashboard();
         updateStats();
