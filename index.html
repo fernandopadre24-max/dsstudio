@@ -2250,8 +2250,10 @@
             try { await db.from(table).delete().eq('id', id); } catch (e) { console.warn('db delete', e); }
         }
 
-        async function loadFromDb() {
+        async function loadFromDb(onlyIfEmpty) {
             if (!dbOnline || !db) return false;
+            const hasLocal = inventory.length || rentals.length || clients.length;
+            if (onlyIfEmpty && hasLocal) return false;
             try {
                 const i = await db.from('inventory').select('*').order('id', { ascending: true });
                 if (i.error) throw i.error;
@@ -2350,9 +2352,13 @@
         }
 
         function save() {
-            localStorage.setItem('sc_inventory', JSON.stringify(inventory));
-            localStorage.setItem('sc_rentals', JSON.stringify(rentals));
-            localStorage.setItem('sc_clients', JSON.stringify(clients));
+            try {
+                localStorage.setItem('sc_inventory', JSON.stringify(inventory));
+                localStorage.setItem('sc_rentals', JSON.stringify(rentals));
+                localStorage.setItem('sc_clients', JSON.stringify(clients));
+            } catch (e) {
+                console.warn('armazenamento indisponivel', e);
+            }
         }
 
         // ===== NAV =====
@@ -4420,7 +4426,10 @@ renderPieChart('dash-chart-pie', cats);
         applyCustomStyle();
         initDb();
         updateDbStatus();
-        if (dbOnline) { (async () => { const loaded = await loadFromDb(); if (!loaded) await migrateLocalToDb(); })(); }
+        if (dbOnline) { (async () => {
+            const loaded = await loadFromDb(true);
+            if (!loaded && (inventory.length || rentals.length || clients.length)) await migrateLocalToDb();
+        })(); }
         renderDashboard();
         updateStats();
         fillClientList();
