@@ -1564,6 +1564,76 @@
 
                 <div class="card">
                     <div class="card-title">
+                        <div class="icon">&#127912;</div> Personalizar Visual
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Fonte</label>
+                            <select id="style-font">
+                                <option value="inter">Inter</option>
+                                <option value="system">Sistema (System)</option>
+                                <option value="georgia">Georgia (serifa)</option>
+                                <option value="mono">Consolas (mono)</option>
+                                <option value="trebuchet">Trebuchet MS</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tamanho da fonte (px)</label>
+                            <input type="number" id="style-fontsize" min="12" max="22" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Curvatura dos cards</label>
+                            <select id="style-radius">
+                                <option value="0">0 (reto)</option>
+                                <option value="8">8</option>
+                                <option value="12">12</option>
+                                <option value="16">16 (padrao)</option>
+                                <option value="24">24 (arredondado)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Estilo dos cards</label>
+                            <select id="style-cardstyle">
+                                <option value="padrao">Padrao</option>
+                                <option value="translucido">Translucido (vidro)</option>
+                                <option value="solido">Solido</option>
+                                <option value="borda">Somente borda</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Cor de destaque</label>
+                            <input type="color" id="style-accent" value="#6c5ce7">
+                        </div>
+                        <div class="form-group">
+                            <label>Cor de destaque 2</label>
+                            <input type="color" id="style-accent2" value="#a855f7">
+                        </div>
+                        <div class="form-group">
+                            <label>Fundo da pagina</label>
+                            <input type="color" id="style-bg" value="#0a0a0f">
+                        </div>
+                        <div class="form-group">
+                            <label>Fundo dos cards</label>
+                            <input type="color" id="style-card" value="#1a1a2e">
+                        </div>
+                        <div class="form-group">
+                            <label>Cor do texto</label>
+                            <input type="color" id="style-text" value="#f0f0f5">
+                        </div>
+                        <div class="form-group">
+                            <label>Cor das bordas</label>
+                            <input type="color" id="style-border" value="#ffffff">
+                        </div>
+                    </div>
+                    <div class="btn-group" style="flex-wrap:wrap;">
+                        <button type="button" class="btn btn-accent" onclick="saveCustomStyle()">&#10003; Aplicar Visual</button>
+                        <button type="button" class="btn btn-ghost" onclick="resetCustomStyle()">&#8634; Restaurar Padrao</button>
+                    </div>
+                    <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:8px;">As alteracoes valem para este aparelho e entram no backup completo.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
                         <div class="icon">&#128187;</div> Banco de Dados (Nuvem)
                     </div>
                     <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">
@@ -2847,6 +2917,28 @@
                 st.textContent = dbOnline ? 'CONECTADO' : 'desligado (dados locais)';
                 st.className = 'badge ' + (dbOnline ? 'badge-green' : 'badge-yellow');
             }
+            const s = customStyleObj();
+            const dark = document.documentElement.getAttribute('data-theme') !== 'light';
+            const seed = {
+                font: 'inter', fontSize: 16, radius: 16, cardStyle: 'padrao',
+                accent: '#6c5ce7', accent2: '#a855f7',
+                bg: dark ? '#0a0a0f' : '#f2f3f7', card: dark ? '#1a1a2e' : '#ffffff',
+                text: dark ? '#f0f0f5' : '#1a1a2e', border: dark ? '#ffffff' : '#000000'
+            };
+            const get = function (id, key) {
+                const el = document.getElementById(id);
+                if (el) el.value = s[key] !== undefined && s[key] !== '' ? s[key] : seed[key];
+            };
+            get('style-font', 'font');
+            get('style-fontsize', 'fontSize');
+            get('style-radius', 'radius');
+            get('style-cardstyle', 'cardStyle');
+            get('style-accent', 'accent');
+            get('style-accent2', 'accent2');
+            get('style-bg', 'bg');
+            get('style-card', 'card');
+            get('style-text', 'text');
+            get('style-border', 'border');
         }
 
         function saveSettingsTitle() {
@@ -2880,6 +2972,94 @@
             })();
         }
 
+        var FONTS = {
+            inter: "'Inter', -apple-system, sans-serif",
+            system: "-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+            georgia: "Georgia, 'Times New Roman', serif",
+            mono: "Consolas, 'Courier New', monospace",
+            trebuchet: "'Trebuchet MS', 'Segoe UI', sans-serif"
+        };
+
+        function hexToRgb(hex) {
+            const h = String(hex || '').replace('#', '');
+            if (h.length === 3) return [parseInt(h[0] + h[0], 16), parseInt(h[1] + h[1], 16), parseInt(h[2] + h[2], 16)];
+            if (h.length === 6) return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+            return null;
+        }
+
+        function customStyleObj() {
+            let s = {};
+            try { s = JSON.parse(localStorage.getItem('sc_style') || '{}'); } catch (e) { s = {}; }
+            return s;
+        }
+
+        function customEverywhere(prop, val) {
+            const post = document.querySelectorAll('.page');
+            post.forEach(function (p) { p.style.setProperty(prop, val); });
+        }
+
+        function applyCustomStyle() {
+            const s = customStyleObj();
+            let rule = '';
+            if (s.font && FONTS[s.font]) rule += 'body { font-family: ' + FONTS[s.font] + '; }\n';
+            if (s.fontSize) rule += 'body { font-size: ' + s.fontSize + 'px; }\n';
+            if (s.radius !== undefined && s.radius !== '') rule += '.card, .dash-card, .modal, .summary-box, .stat-chip, .eq-check, .stat-pill, .side-nav button, input, select, textarea, button { border-radius: ' + s.radius + 'px !important; }\n';
+            const a1 = s.accent || '', a2 = s.accent2 || '';
+            if (a1) {
+                const rgb = hexToRgb(a1);
+                rule += ':root { --accent: ' + a1 + '; --accent-glow: ' + (rgb ? 'rgba(' + rgb.join(',') + ',0.3)' : 'var(--accent-glow)') + '; --gradient-1: linear-gradient(135deg, ' + a1 + ', ' + (a2 || '#a855f7') + '); --gradient-2: linear-gradient(135deg, ' + (a2 || '#3b82f6') + ', ' + a1 + '); }\n';
+            }
+            if (a2) rule += ':root { --accent-2: ' + a2 + '; }\n';
+            if (s.bg) {
+                const rgb = hexToRgb(s.bg);
+                rule += ':root { --bg: ' + s.bg + '; ' + (rgb ? '--header-bg: rgba(' + rgb.join(',') + ',0.82); --nav-bg: rgba(' + rgb.join(',') + ',0.72);' : '') + ' }\n';
+            }
+            if (s.text) rule += ':root { --text: ' + s.text + '; }\n';
+            if (s.border) {
+                const rgb = hexToRgb(s.border);
+                rule += ':root { --border: ' + (rgb ? 'rgba(' + rgb.join(',') + ',0.18)' : s.border) + '; }\n';
+            }
+            const cardStyle = s.cardStyle || 'padrao';
+            if (s.card) {
+                const rgb = hexToRgb(s.card);
+                if (rgb) {
+                    if (cardStyle === 'solido') rule += '.card, .dash-card, .modal, .summary-box { background: rgb(' + rgb.join(',') + '); }\n';
+                    else if (cardStyle === 'borda') rule += '.card, .dash-card { background: transparent; border: 2px solid var(--border); }\n';
+                    else rule += '.card, .dash-card, .modal, .summary-box { background: rgba(' + rgb.join(',') + ',' + (cardStyle === 'translucido' ? '0.5' : '0.35') + '); }\n';
+                }
+            } else if (cardStyle === 'translucido') {
+                rule += '.card, .dash-card { background: var(--bg-glass); backdrop-filter: blur(16px); }\n';
+            }
+            let st = document.getElementById('custom-style');
+            if (!st) { st = document.createElement('style'); st.id = 'custom-style'; document.head.appendChild(st); }
+            st.textContent = rule;
+        }
+
+        function saveCustomStyle() {
+            const s = {
+                font: document.getElementById('style-font').value,
+                fontSize: parseInt(document.getElementById('style-fontsize').value) || 16,
+                radius: parseInt(document.getElementById('style-radius').value) || 0,
+                cardStyle: document.getElementById('style-cardstyle').value,
+                accent: document.getElementById('style-accent').value,
+                accent2: document.getElementById('style-accent2').value,
+                bg: document.getElementById('style-bg').value,
+                card: document.getElementById('style-card').value,
+                text: document.getElementById('style-text').value,
+                border: document.getElementById('style-border').value
+            };
+            localStorage.setItem('sc_style', JSON.stringify(s));
+            applyCustomStyle();
+            alert('Visual aplicado!');
+        }
+
+        function resetCustomStyle() {
+            localStorage.removeItem('sc_style');
+            applyCustomStyle();
+            renderSettings();
+            alert('Visual padrao restaurado.');
+        }
+
         // ===== BACKUP =====
         function downloadFile(content, filename, mime) {
             const blob = new Blob([content], { type: mime || 'application/octet-stream' });
@@ -2906,6 +3086,7 @@
                 exportedAt: new Date().toISOString(),
                 title: localStorage.getItem('sc_title') || '',
                 theme: localStorage.getItem('sc_theme') || 'dark',
+                style: localStorage.getItem('sc_style') || '',
                 inventory: inventory,
                 clients: clients,
                 rentals: rentals
@@ -2933,10 +3114,12 @@
                     rentals = data.rentals || [];
                     clients = Array.isArray(data.clients) ? data.clients : [];
                     if (data.title !== undefined) localStorage.setItem('sc_title', data.title);
-                    if (data.theme !== undefined) localStorage.setItem('sc_theme', data.theme);
-                    save();
-                    applyTitle();
-                    applyTheme();
+if (data.theme !== undefined) localStorage.setItem('sc_theme', data.theme);
+                     if (data.style) localStorage.setItem('sc_style', data.style);
+                     save();
+                     applyTitle();
+                     applyTheme();
+                     applyCustomStyle();
                     fillClientList();
                     renderInventory(); renderRentals(); renderClients(); renderEvents(); renderDashboard(); updateStats();
                     emptyInventoryTable();
@@ -2987,6 +3170,7 @@
         // ===== INIT =====
         applyTitle();
         applyTheme();
+        applyCustomStyle();
         initDb();
         updateDbStatus();
         if (dbOnline) { (async () => { const loaded = await loadFromDb(); if (!loaded) await migrateLocalToDb(); })(); }
