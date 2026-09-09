@@ -751,6 +751,21 @@
             border-top: 1px solid var(--border);
         }
 
+        .edit-panel {
+            background: var(--bg-glass);
+            border: 1px dashed var(--accent);
+            border-radius: 14px;
+            padding: 16px;
+            margin: 6px 0;
+        }
+
+        .edit-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            color: var(--accent-2);
+        }
+
         /* ===== MODAL ===== */
         .modal-bg {
             display: none;
@@ -1901,6 +1916,9 @@
         let rentals = JSON.parse(localStorage.getItem('sc_rentals') || '[]');
         let clients = JSON.parse(localStorage.getItem('sc_clients') || '[]');
 
+        let editingRentalId = null;
+        let editingEqId = null;
+
         // ===== DATABASE (Supabase) =====
         let db = null;
         let dbOnline = false;
@@ -2196,6 +2214,59 @@
             dbUpdate('inventory', eq);
         }
 
+        function equipmentEditRowHTML(eq) {
+            const cats = ['Sub', 'Caixa', 'Microfone', 'Microfone de Bumbo', 'Mesa de Som', 'Cabo', 'Suporte', 'Iluminacao', 'Amplificador', 'Outro'];
+            const catOpts = cats.map(c => `<option value="${c}" ${eq.category === c ? 'selected' : ''}>${c === 'Caixa' ? 'Caixa / Speaker' : c}</option>`).join('');
+            return `
+                <div class="edit-panel">
+                    <div class="edit-title">&#9998; Editando ${escAttr(eq.name)}</div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Nome</label><input type="text" id="ee-name" value="${escAttr(eq.name)}"></div>
+                        <div class="form-group"><label>Categoria</label><select id="ee-category">${catOpts}</select></div>
+                        <div class="form-group"><label>Qtd Total</label><input type="number" id="ee-qty" min="0" value="${eq.qty}"></div>
+                        <div class="form-group"><label>Disponivel</label><input type="number" id="ee-avail" min="0" value="${eq.available}"></div>
+                        <div class="form-group"><label>Valor Unit. (R$)</label><input type="number" id="ee-value" min="0" step="0.01" value="${eq.value}"></div>
+                        <div class="form-group"><label>Marca / Modelo</label><input type="text" id="ee-brand" value="${escAttr(eq.brand || '')}"></div>
+                        <div class="form-group"><label>Status</label>
+                            <select id="ee-status">
+                                <option value="disponivel" ${eq.status === 'disponivel' ? 'selected' : ''}>Disponivel</option>
+                                <option value="manutencao" ${eq.status === 'manutencao' ? 'selected' : ''}>Em Manutencao</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Foto (URL)</label><input type="text" id="ee-photo" value="${escAttr(eq.photo || '')}" placeholder="https://... ou x para remover"></div>
+                    </div>
+                    <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
+                        <button type="button" class="btn btn-ghost" onclick="cancelInlineEdit()">Cancelar</button>
+                        <button type="button" class="btn btn-accent" onclick="saveEquipmentEdits(${eq.id})">&#10003; Salvar</button>
+                    </div>
+                </div>`;
+        }
+
+        function editEquipmentInline(id) {
+            const eq = inventory.find(e => e.id === id);
+            if (!eq) return;
+            editingEqId = id;
+            renderInventory();
+        }
+
+        function saveEquipmentEdits(id) {
+            const eq = inventory.find(e => e.id === id);
+            if (!eq) return;
+            eq.name = document.getElementById('ee-name').value.trim() || eq.name;
+            eq.category = document.getElementById('ee-category').value;
+            eq.qty = Math.max(0, parseInt(document.getElementById('ee-qty').value) || 0);
+            eq.available = Math.max(0, parseInt(document.getElementById('ee-avail').value) || 0);
+            eq.value = parseFloat(String(document.getElementById('ee-value').value).replace(',', '.')) || 0;
+            eq.brand = document.getElementById('ee-brand').value.trim();
+            eq.status = document.getElementById('ee-status').value;
+            const ph = document.getElementById('ee-photo').value.trim();
+            if (ph.toLowerCase() === 'x') eq.photo = '';
+            else if (ph) eq.photo = ph;
+            editingEqId = null;
+            save(); renderInventory(); updateStats(); refreshCurrentPage();
+            dbUpdate('inventory', eq);
+        }
+
         function renderInventory() {
             const search = document.getElementById('search-inventory').value.toLowerCase();
             const cat = document.getElementById('filter-category').value;
@@ -2216,7 +2287,11 @@
             if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
             empty.style.display = 'none';
 
-            tbody.innerHTML = filtered.map(eq => `
+            tbody.innerHTML = filtered.map(eq => {
+                if (eq.id === editingEqId) {
+                    return `<tr id="inventory-edit-row"><td colspan="9">${equipmentEditRowHTML(eq)}</td></tr>`;
+                }
+                return `
                 <tr>
                     <td>${eq.photo ? `<img src="${escAttr(eq.photo)}" class="photo-thumb" alt="" onclick="viewPhoto(${eq.id})">` : '<span class="photo-thumb photo-empty">&#128247;</span>'}</td>
                     <td class="td-name">${eq.name}</td>
@@ -2227,11 +2302,11 @@
                     <td>${eq.brand || '-'}</td>
                     <td><span class="badge ${eq.status === 'disponivel' ? 'badge-green' : 'badge-yellow'}">${eq.status === 'disponivel' ? 'Disponivel' : 'Manutencao'}</span></td>
                     <td class="action-btns">
-                        <button class="btn btn-ghost btn-sm" onclick="editEquipment(${eq.id})">&#9998;</button>
+                        <button class="btn btn-ghost btn-sm" onclick="editEquipmentInline(${eq.id})">&#9998;</button>
                         <button class="btn btn-danger-ghost btn-sm" onclick="deleteEquipment(${eq.id})">&#10005;</button>
                     </td>
-                </tr>
-            `).join('');
+                </tr>`;
+            }).join('');
         }
 
         // ===== RENTALS =====
@@ -2416,13 +2491,8 @@
             document.getElementById('modal-bg').classList.add('active');
         }
 
-        function editRental(id) {
-            const r = rentals.find(x => x.id === id);
-            if (!r) return;
-
-            const opts = clients.map(c => `<option value="${escAttr(c.name)}" ${c.name === r.client ? 'selected' : ''}>${escAttr(c.name)}</option>`).join('');
-
-            const eqSel = inventory.map(eq => {
+        function equipmentEditHTML(r) {
+            return inventory.map(eq => {
                 const cur = (r.equipment || []).find(e => e.id === eq.id);
                 const checked = cur ? 'checked' : '';
                 const maxV = eq.available + (cur ? cur.qty : 0);
@@ -2433,19 +2503,23 @@
                         <input type="number" class="qty-input" id="rnt-eq-qty-${eq.id}" min="1" max="${Math.max(1, maxV)}" value="${cur ? cur.qty : 1}" ${maxV <= 0 ? 'disabled' : ''} onclick="event.stopPropagation()">
                     </div>`;
             }).join('');
+        }
 
+        function buildEditFormHTML(r) {
+            const opts = clients.map(c => `<option value="${escAttr(c.name)}" ${c.name === r.client ? 'selected' : ''}>${escAttr(c.name)}</option>`).join('');
             const statusOpts = ['agendado', 'em andamento', 'concluido', 'cancelado'].map(s =>
                 `<option value="${s}" ${r.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`
             ).join('');
-
-            document.getElementById('modal-content').innerHTML = `
-                <h2>&#9998; Editar Aluguel</h2>
-                <form id="form-edit-rental" onsubmit="saveRentalEdits(${r.id}); return false;">
+            return `
+                <div class="edit-panel">
+                    <div class="edit-title">&#9998; Editando Aluguel de ${escAttr(r.client)}</div>
                     <div class="form-grid">
                         <div class="form-group" style="grid-column:span 2;">
                             <label>Cliente *</label>
-                            <input type="text" id="rer-client" required value="${escAttr(r.client)}" list="client-list">
-                            ${clients.length ? `<select id="rer-client-select" style="margin-top:6px;" onchange="document.getElementById('rer-client').value=this.value"><option value="">Escolher cliente...</option>${opts}</select>` : ''}
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <input type="text" id="rer-client" required value="${escAttr(r.client)}" list="client-list" style="flex:1;min-width:150px;">
+                                ${clients.length ? `<select id="rer-client-select" onchange="document.getElementById('rer-client').value=this.value" style="flex:1;min-width:150px;"><option value="">Escolher cliente...</option>${opts}</select>` : ''}
+                            </div>
                         </div>
                         <div class="form-group"><label>Telefone</label><input type="text" id="rer-phone" value="${escAttr(r.phone || '')}"></div>
                         <div class="form-group"><label>Nome do Evento *</label><input type="text" id="rer-event" required value="${escAttr(r.eventName)}"></div>
@@ -2458,17 +2532,28 @@
                         <div class="form-group"><label>Status</label><select id="rer-status">${statusOpts}</select></div>
                         <div class="form-group" style="grid-column:span 2;"><label>Observacoes</label><input type="text" id="rer-notes" value="${escAttr(r.notes || '')}"></div>
                     </div>
-                    <div style="margin-top:8px;">
+                    <div style="margin-top:10px;">
                         <label style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.8px;">Material deste aluguel</label>
-                        <div class="eq-selector">${eqSel || '<div class="empty-state"><p>Nenhum equipamento cadastrado</p></div>'}</div>
+                        <div class="eq-selector">${equipmentEditHTML(r) || '<div class="empty-state"><p>Nenhum equipamento cadastrado</p></div>'}</div>
                     </div>
                     <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
-                        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-                        <button type="submit" class="btn btn-accent">&#10003; Salvar Alteracoes</button>
+                        <button type="button" class="btn btn-ghost" onclick="cancelInlineEdit()">Cancelar</button>
+                        <button type="button" class="btn btn-accent" onclick="saveRentalEdits(${r.id})">&#10003; Salvar Alteracoes</button>
                     </div>
-                </form>
-            `;
-            document.getElementById('modal-bg').classList.add('active');
+                </div>`;
+        }
+
+        function editRental(id) {
+            const r = rentals.find(x => x.id === id);
+            if (!r) return;
+            editingRentalId = id;
+            refreshCurrentPage();
+        }
+
+        function cancelInlineEdit() {
+            editingRentalId = null;
+            editingEqId = null;
+            refreshCurrentPage();
         }
 
         function saveRentalEdits(id) {
@@ -2524,9 +2609,9 @@
             const mc = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
             if (mc) mc.lastRentDate = r.date;
 
+            editingRentalId = null;
             save();
             renderRentals(); renderEquipmentSelector(); updateStats(); fillClientList(); refreshCurrentPage();
-            closeModal();
             dbUpdate('rentals', r);
         }
 
@@ -2558,7 +2643,11 @@
             if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
             empty.style.display = 'none';
 
-            tbody.innerHTML = filtered.map(r => `
+            tbody.innerHTML = filtered.map(r => {
+                if (r.id === editingRentalId) {
+                    return `<tr id="rental-edit-row"><td colspan="10">${buildEditFormHTML(r)}</td></tr>`;
+                }
+                return `
                 <tr>
                     <td class="td-name">${r.client}</td>
                     <td>${r.eventName}</td>
@@ -2579,8 +2668,8 @@
                         ` : ''}
                         <button class="btn btn-danger-ghost btn-sm" onclick="deleteRental(${r.id})" title="Excluir">&#128465;</button>
                     </td>
-                </tr>
-            `).join('');
+                </tr>`;
+            }).join('');
         }
 
         // ===== CLIENT ACCOUNTS (pagamentos) =====
@@ -2807,7 +2896,11 @@
                 <div class="stat-chip"><div class="num">${totalEq}</div><div class="lbl">Itens Alugados</div></div>
             `;
 
-            tl.innerHTML = filtered.map(r => `
+            tl.innerHTML = filtered.map(r => {
+                if (r.id === editingRentalId) {
+                    return `<div class="event-card" data-status="${r.status}">${buildEditFormHTML(r)}</div>`;
+                }
+                return `
                 <div class="event-card" data-status="${r.status}" onclick="viewRental(${r.id})">
                     <div class="event-top">
                         <div>
@@ -2831,8 +2924,8 @@
                         ` : ''}
                         <button class="btn btn-danger-ghost btn-sm" onclick="deleteRental(${r.id})">&#128465; Excluir</button>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
         // ===== DASHBOARD =====
