@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -1254,7 +1254,7 @@
                     </div>
                     <p style="font-size:0.8rem;color:var(--text-secondary);line-height:1.6;">
                         O backup JSON guarda <strong>tudo</strong> (estoque, alugueis, clientes e preferencias).<br>
-                        Os botões de Excel geram planilhas .csv que abrem direto no Excel, Google Sheets ou LibreOffice.<br>
+                        Os botÃµes de Excel geram planilhas .csv que abrem direto no Excel, Google Sheets ou LibreOffice.<br>
                         Com o banco na nuvem configurado, os dados ficam sincronizados entre qualquer dispositivo.
                     </p>
                 </div>
@@ -1918,6 +1918,9 @@
 
         let editingRentalId = null;
         let editingEqId = null;
+        let confirmDel = null;
+        let lastImportFile = null;
+        let lastImportInput = null;
 
         // ===== DATABASE (Supabase) =====
         let db = null;
@@ -2186,32 +2189,11 @@
             document.getElementById('modal-bg').classList.add('active');
         }
 
-        function deleteEquipment(id) {
-            if (!confirm('Excluir este equipamento?')) return;
+        function doDeleteEquipment(id) {
             inventory = inventory.filter(e => e.id !== id);
             save(); renderInventory(); updateStats();
             refreshCurrentPage();
             dbDelete('inventory', id);
-        }
-
-        function editEquipment(id) {
-            const eq = inventory.find(e => e.id === id);
-            if (!eq) return;
-            const n = prompt('Nome:', eq.name); if (n === null) return;
-            const c = prompt('Categoria:', eq.category); if (c === null) return;
-            const q = prompt('Quantidade Total:', eq.qty); if (q === null) return;
-            const a = prompt('Disponivel:', eq.available); if (a === null) return;
-            const v = prompt('Valor Unitario (R$):', eq.value); if (v === null) return;
-            const b = prompt('Marca/Modelo:', eq.brand); if (b === null) return;
-            const ph = prompt('Foto (cole uma URL de imagem, ou digite x para remover):', ''); if (ph === null) return;
-
-            eq.name = n.trim(); eq.category = c.trim();
-            eq.qty = parseInt(q) || eq.qty; eq.available = parseInt(a) || eq.available;
-            eq.value = parseFloat(v) || eq.value; eq.brand = b.trim();
-            if (ph.trim().toLowerCase() === 'x') eq.photo = '';
-            else if (ph.trim()) eq.photo = ph.trim();
-            save(); renderInventory(); updateStats();
-            dbUpdate('inventory', eq);
         }
 
         function equipmentEditRowHTML(eq) {
@@ -2237,7 +2219,7 @@
                     </div>
                     <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
                         <button type="button" class="btn btn-ghost" onclick="cancelInlineEdit()">Cancelar</button>
-                        <button type="button" class="btn btn-danger-ghost" onclick="cancelInlineEdit(); deleteEquipment(${eq.id})">&#128465; Excluir</button>
+                        <button type="button" class="btn btn-danger-ghost" onclick="requestDeleteEquipment(${eq.id})">&#128465; Excluir</button>
                         <button type="button" class="btn btn-accent" onclick="saveEquipmentEdits(${eq.id})">&#10003; Salvar</button>
                     </div>
                 </div>`;
@@ -2292,6 +2274,9 @@
                 if (eq.id === editingEqId) {
                     return `<tr id="inventory-edit-row"><td colspan="9">${equipmentEditRowHTML(eq)}</td></tr>`;
                 }
+                if (confirmDel && confirmDel.type === 'equipment' && confirmDel.id === eq.id) {
+                    return confirmStripRowHTML('equipment', eq.id, 'Excluir este equipamento?', 'danger');
+                }
                 return `
                 <tr>
                     <td>${eq.photo ? `<img src="${escAttr(eq.photo)}" class="photo-thumb" alt="" onclick="viewPhoto(${eq.id})">` : '<span class="photo-thumb photo-empty">&#128247;</span>'}</td>
@@ -2304,7 +2289,7 @@
                     <td><span class="badge ${eq.status === 'disponivel' ? 'badge-green' : 'badge-yellow'}">${eq.status === 'disponivel' ? 'Disponivel' : 'Manutencao'}</span></td>
                     <td class="action-btns">
                         <button class="btn btn-ghost btn-sm" onclick="editEquipmentInline(${eq.id})">&#9998;</button>
-                        <button class="btn btn-danger-ghost btn-sm" onclick="deleteEquipment(${eq.id})">&#10005;</button>
+                        <button class="btn btn-danger-ghost btn-sm" onclick="requestDeleteEquipment(${eq.id})">&#10005;</button>
                     </td>
                 </tr>`;
             }).join('');
@@ -2396,9 +2381,9 @@
             renderRentals(); renderEquipmentSelector(); updateStats(); fillClientList();
         }
 
-        function returnEquipment(id) {
+        function doReturnEquipment(id) {
             const r = rentals.find(x => x.id === id);
-            if (!r || !confirm('Confirmar devolucao do material?')) return;
+            if (!r) return;
             r.equipment.forEach(item => {
                 const eq = inventory.find(e => e.id === item.id);
                 if (eq) eq.available = Math.min(eq.qty, eq.available + item.qty);
@@ -2413,9 +2398,9 @@
             });
         }
 
-        function cancelRental(id) {
+        function doCancelRental(id) {
             const r = rentals.find(x => x.id === id);
-            if (!r || !confirm('Cancelar aluguel e devolver material?')) return;
+            if (!r) return;
             r.equipment.forEach(item => {
                 const eq = inventory.find(e => e.id === item.id);
                 if (eq) eq.available = Math.min(eq.qty, eq.available + item.qty);
@@ -2430,10 +2415,10 @@
             });
         }
 
-        function deleteRental(id) {
-            if (!confirm('Excluir este aluguel permanentemente?')) return;
+        function doDeleteRental(id) {
             const r = rentals.find(x => x.id === id);
-            if (r && r.status !== 'concluido' && r.status !== 'cancelado') {
+            if (!r) return;
+            if (r.status !== 'concluido' && r.status !== 'cancelado') {
                 r.equipment.forEach(item => {
                     const eq = inventory.find(e => e.id === item.id);
                     if (eq) eq.available = Math.min(eq.qty, eq.available + item.qty);
@@ -2443,7 +2428,7 @@
             save(); renderRentals(); updateStats();
             refreshCurrentPage();
             dbDelete('rentals', id);
-            if (r && r.status !== 'concluido' && r.status !== 'cancelado') {
+            if (r.status !== 'concluido' && r.status !== 'cancelado') {
                 r.equipment.forEach(item => {
                     const eq = inventory.find(e => e.id === item.id);
                     if (eq) dbUpdate('inventory', eq);
@@ -2484,9 +2469,9 @@
                     <button type="button" class="btn btn-ghost" onclick="closeModal(); editRental(${r.id})">&#9998; Editar</button>
                     ${r.status !== 'cancelado' ? `<button type="button" class="btn btn-accent" onclick="closeModal(); payRental(${r.id})">&#128176; Receber</button>` : ''}
                     ${(r.status === 'agendado' || r.status === 'em andamento') ? `
-                        <button type="button" class="btn btn-green" onclick="closeModal(); returnEquipment(${r.id})">&#10003; Devolver</button>
-                        <button type="button" class="btn btn-danger-ghost" onclick="closeModal(); cancelRental(${r.id})">&#10005; Cancelar</button>` : ''}
-                    <button type="button" class="btn btn-danger-ghost" onclick="closeModal(); deleteRental(${r.id})">&#128465; Excluir</button>
+                        <button type="button" class="btn btn-green" onclick="closeModal(); requestReturnRental(${r.id})">&#10003; Devolver</button>
+                        <button type="button" class="btn btn-danger-ghost" onclick="closeModal(); requestCancelRental(${r.id})">&#10005; Cancelar</button>` : ''}
+                    <button type="button" class="btn btn-danger-ghost" onclick="closeModal(); requestDeleteRental(${r.id})">&#128465; Excluir</button>
                 </div>
             `;
             document.getElementById('modal-bg').classList.add('active');
@@ -2539,7 +2524,7 @@
                     </div>
                     <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
                         <button type="button" class="btn btn-ghost" onclick="cancelInlineEdit()">Cancelar</button>
-                        <button type="button" class="btn btn-danger-ghost" onclick="cancelInlineEdit(); deleteRental(${r.id})">&#128465; Excluir</button>
+                        <button type="button" class="btn btn-danger-ghost" onclick="requestDeleteRental(${r.id})">&#128465; Excluir</button>
                         <button type="button" class="btn btn-accent" onclick="saveRentalEdits(${r.id})">&#10003; Salvar Alteracoes</button>
                     </div>
                 </div>`;
@@ -2556,6 +2541,100 @@
             editingRentalId = null;
             editingEqId = null;
             refreshCurrentPage();
+        }
+
+        function confirmStripRowHTML(type, id, msg, tone) {
+            const bg = tone === 'ok' ? 'var(--green-bg)' : 'var(--red-bg)';
+            const color = tone === 'ok' ? 'var(--green)' : 'var(--red)';
+            return `<tr><td colspan="20" style="background:${bg};">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;">
+                    <strong style="color:${color};font-size:0.85rem;">${msg}</strong>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="cancelInlineDelete()">Cancelar</button>
+                        <button type="button" class="btn btn-danger-ghost btn-sm" onclick="deleteConfirmed('${type}', ${id})">&#10003; Confirmar</button>
+                    </div>
+                </div>
+            </td></tr>`;
+        }
+
+        function confirmStripCardHTML(type, id, msg, tone) {
+            const bg = tone === 'ok' ? 'var(--green-bg)' : 'var(--red-bg)';
+            const color = tone === 'ok' ? 'var(--green)' : 'var(--red)';
+            return `<div class="event-card" style="cursor:default;">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;background:${bg};border:1px solid var(--border);border-radius:12px;padding:14px;">
+                    <strong style="color:${color};font-size:0.85rem;">${msg}</strong>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="cancelInlineDelete()">Cancelar</button>
+                        <button type="button" class="btn btn-danger-ghost btn-sm" onclick="deleteConfirmed('${type}', ${id})">&#10003; Confirmar</button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function cancelInlineDelete() {
+            confirmDel = null;
+            refreshCurrentPage();
+        }
+
+        function requestDeleteRental(id) {
+            editingRentalId = null;
+            confirmDel = { type: 'rental', id: id };
+            refreshCurrentPage();
+        }
+
+        function requestDeleteEquipment(id) {
+            editingEqId = null;
+            confirmDel = { type: 'equipment', id: id };
+            refreshCurrentPage();
+        }
+
+        function requestDeleteClient(id) {
+            confirmDel = { type: 'client', id: id };
+            refreshCurrentPage();
+        }
+
+        function requestCancelRental(id) {
+            editingRentalId = null;
+            confirmDel = { type: 'cancel', id: id };
+            refreshCurrentPage();
+        }
+
+        function requestReturnRental(id) {
+            editingRentalId = null;
+            confirmDel = { type: 'return', id: id };
+            refreshCurrentPage();
+        }
+
+        function deleteConfirmed(type, id) {
+            confirmDel = null;
+            if (type === 'rental') doDeleteRental(id);
+            else if (type === 'equipment') doDeleteEquipment(id);
+            else if (type === 'client') doDeleteClient(id);
+            else if (type === 'cancel') doCancelRental(id);
+            else if (type === 'return') doReturnEquipment(id);
+        }
+
+        function appAlert(msg) {
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#128276; Aviso</h2>
+                <p style="margin:-4px 0 20px;color:var(--text);font-size:0.92rem;">${msg}</p>
+                <div class="btn-group" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-accent" onclick="closeModal()">&#10003; OK</button>
+                </div>`;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function alert(msg) { appAlert(msg); }
+
+        function appConfirm(msg, action) {
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#9888;&#65039; Confirmar</h2>
+                <p style="margin-bottom:20px;color:var(--text);font-size:0.92rem;">${msg}</p>
+                <div class="btn-group" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                    <button type="button" class="btn btn-danger-ghost" onclick="closeModal(); ${action}">&#10003; Confirmar</button>
+                </div>`;
+            document.getElementById('modal-bg').classList.add('active');
         }
 
         function saveRentalEdits(id) {
@@ -2649,6 +2728,11 @@
                 if (r.id === editingRentalId) {
                     return `<tr id="rental-edit-row"><td colspan="10">${buildEditFormHTML(r)}</td></tr>`;
                 }
+                if (confirmDel && confirmDel.id === r.id) {
+                    if (confirmDel.type === 'rental') return confirmStripRowHTML('rental', r.id, 'Excluir este aluguel permanentemente?', 'danger');
+                    if (confirmDel.type === 'cancel') return confirmStripRowHTML('cancel', r.id, 'Cancelar aluguel e devolver o material?', 'danger');
+                    if (confirmDel.type === 'return') return confirmStripRowHTML('return', r.id, 'Confirmar devolucao do material?', 'ok');
+                }
                 return `
                 <tr>
                     <td class="td-name">${r.client}</td>
@@ -2665,10 +2749,10 @@
                         <button class="btn btn-ghost btn-sm" onclick="editRental(${r.id})" title="Editar">&#9998;</button>
                         ${r.status !== 'cancelado' ? `<button class="btn btn-ghost btn-sm" onclick="payRental(${r.id})" title="Receber pagamento">&#128176;</button>` : ''}
                         ${(r.status === 'agendado' || r.status === 'em andamento') ? `
-                            <button class="btn btn-green btn-sm" onclick="returnEquipment(${r.id})" title="Devolver">&#10003;</button>
-                            <button class="btn btn-danger-ghost btn-sm" onclick="cancelRental(${r.id})" title="Cancelar">&#10005;</button>
+                            <button class="btn btn-green btn-sm" onclick="requestReturnRental(${r.id})" title="Devolver">&#10003;</button>
+                            <button class="btn btn-danger-ghost btn-sm" onclick="requestCancelRental(${r.id})" title="Cancelar">&#10005;</button>
                         ` : ''}
-                        <button class="btn btn-danger-ghost btn-sm" onclick="deleteRental(${r.id})" title="Excluir">&#128465;</button>
+                        <button class="btn btn-danger-ghost btn-sm" onclick="requestDeleteRental(${r.id})" title="Excluir">&#128465;</button>
                     </td>
                 </tr>`;
             }).join('');
@@ -2689,14 +2773,25 @@
         function payRental(id) {
             const r = rentals.find(x => x.id === id);
             if (!r) return;
-            const rec = prompt('Valor recebido ate agora (R$):\nSinal + pagamentos ja feitos.', r.deposit || 0);
-            if (rec === null) return;
-            const v = Math.max(0, parseFloat(String(rec).replace(',', '.')) || 0);
-            if (r.totalValue > 0 && v > r.totalValue) {
-                if (!confirm('Valor maior que o total do aluguel. Confirmar?')) return;
-            }
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#128176; Receber Pagamento</h2>
+                <p style="margin:-8px 0 14px;color:var(--text-secondary);font-size:0.85rem;">Valor recebido ate agora (sinal + pagamentos ja feitos).</p>
+                <div class="form-group"><input type="number" id="pay-input" min="0" step="0.01" value="${r.deposit || 0}"></div>
+                <div class="btn-group" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                    <button type="button" class="btn btn-accent" onclick="submitPay(${id})">&#10003; Salvar</button>
+                </div>`;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function submitPay(id) {
+            const r = rentals.find(x => x.id === id);
+            if (!r) return;
+            const v = Math.max(0, parseFloat(String(document.getElementById('pay-input').value).replace(',', '.')) || 0);
             r.deposit = v;
+            closeModal();
             save(); renderRentals(); updateStats();
+            refreshCurrentPage();
             dbUpdate('rentals', r);
         }
 
@@ -2902,6 +2997,11 @@
                 if (r.id === editingRentalId) {
                     return `<div class="event-card" data-status="${r.status}">${buildEditFormHTML(r)}</div>`;
                 }
+                if (confirmDel && confirmDel.id === r.id) {
+                    if (confirmDel.type === 'rental') return confirmStripCardHTML('rental', r.id, 'Excluir este aluguel permanentemente?', 'danger');
+                    if (confirmDel.type === 'cancel') return confirmStripCardHTML('cancel', r.id, 'Cancelar aluguel e devolver o material?', 'danger');
+                    if (confirmDel.type === 'return') return confirmStripCardHTML('return', r.id, 'Confirmar devolucao do material?', 'ok');
+                }
                 return `
                 <div class="event-card" data-status="${r.status}" onclick="viewRental(${r.id})">
                     <div class="event-top">
@@ -2921,10 +3021,10 @@
                     <div class="event-actions" onclick="event.stopPropagation()">
                         <button class="btn btn-ghost btn-sm" onclick="editRental(${r.id})">&#9998; Editar</button>
                         ${(r.status === 'agendado' || r.status === 'em andamento') ? `
-                            <button class="btn btn-green btn-sm" onclick="returnEquipment(${r.id})">&#10003; Devolver</button>
-                            <button class="btn btn-danger-ghost btn-sm" onclick="cancelRental(${r.id})">&#10005; Cancelar</button>
+                            <button class="btn btn-green btn-sm" onclick="requestReturnRental(${r.id})">&#10003; Devolver</button>
+                            <button class="btn btn-danger-ghost btn-sm" onclick="requestCancelRental(${r.id})">&#10005; Cancelar</button>
                         ` : ''}
-                        <button class="btn btn-danger-ghost btn-sm" onclick="deleteRental(${r.id})">&#128465; Excluir</button>
+                        <button class="btn btn-danger-ghost btn-sm" onclick="requestDeleteRental(${r.id})">&#128465; Excluir</button>
                     </div>
                 </div>`;
             }).join('');
@@ -3136,14 +3236,9 @@ renderPieChart('dash-chart-pie', cats);
             dbUpdate('clients', cl);
         }
 
-        function deleteClient(id) {
+        function doDeleteClient(id) {
             const cl = clients.find(x => x.id === id);
             if (!cl) return;
-            const hasRentals = rentals.some(r => r.clientId === id);
-            const msg = hasRentals
-                ? `O cliente "${cl.name}" possui alugueis vinculados. Ainda assim deseja excluir? Os alugueis serao mantidos.`
-                : `Excluir o cliente "${cl.name}"?`;
-            if (!confirm(msg)) return;
             clients = clients.filter(x => x.id !== id);
             save(); renderClients(); fillClientList();
             refreshCurrentPage();
@@ -3240,6 +3335,10 @@ renderPieChart('dash-chart-pie', cats);
                     ? clRentals.sort((a, b) => new Date(b.date) - new Date(a.date))[0].date
                     : null;
 
+                if (confirmDel && confirmDel.type === 'client' && confirmDel.id === c.id) {
+                    return confirmStripRowHTML('client', c.id, 'Excluir este cliente?', 'danger');
+                }
+
                 return `
                 <tr>
                     <td class="td-name" style="cursor:pointer;color:var(--accent-2)" onclick="viewClient(${c.id})">${c.name}</td>
@@ -3251,7 +3350,7 @@ renderPieChart('dash-chart-pie', cats);
                     <td class="action-btns">
                         <button class="btn btn-ghost btn-sm" onclick="viewClient(${c.id})" title="Ver ficha">&#128065;</button>
                         <button class="btn btn-ghost btn-sm" onclick="editClient(${c.id})" title="Editar">&#9998;</button>
-                        <button class="btn btn-danger-ghost btn-sm" onclick="deleteClient(${c.id})" title="Excluir">&#10005;</button>
+                        <button class="btn btn-danger-ghost btn-sm" onclick="requestDeleteClient(${c.id})" title="Excluir">&#10005;</button>
                     </td>
                 </tr>`;
             }).join('');
@@ -3387,10 +3486,22 @@ renderPieChart('dash-chart-pie', cats);
         }
 
         function editTitle() {
-            const t = (localStorage.getItem('sc_title') || '').trim();
-            const novo = prompt('Titulo do sistema:', t || 'SoundControl');
-            if (novo === null) return;
-            localStorage.setItem('sc_title', novo.trim());
+            const t = (localStorage.getItem('sc_title') || '').trim() || 'SoundControl';
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#9998; Titulo do Sistema</h2>
+                <p style="margin:-8px 0 14px;color:var(--text-secondary);font-size:0.85rem;">Nome exibido no topo do app.</p>
+                <div class="form-group"><input type="text" id="title-input" maxlength="40" value="${escAttr(t)}"></div>
+                <div class="btn-group" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                    <button type="button" class="btn btn-accent" onclick="saveTitle()">&#10003; Salvar</button>
+                </div>`;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function saveTitle() {
+            const v = document.getElementById('title-input').value.trim();
+            localStorage.setItem('sc_title', v || 'SoundControl');
+            closeModal();
             applyTitle();
         }
 
@@ -3554,12 +3665,15 @@ renderPieChart('dash-chart-pie', cats);
 
         function pushLocalToDb() {
             if (!dbOnline) { alert('Banco nao configurado. Use "Configurar conexao".'); return; }
-            if (!confirm('Substituir TODO o banco na nuvem pelos dados deste aparelho?\nOs dados da nuvem serao apagados.')) return;
+            appConfirm('Substituir TODO o banco na nuvem pelos dados deste aparelho? <br><small>Os dados da nuvem serao apagados.</small>', 'pushLocalToDbConfirmed()');
+        }
+
+        function pushLocalToDbConfirmed() {
             (async () => {
                 await deleteAndRestoreDb();
                 await migrateLocalToDb();
                 renderSettings();
-                alert('Dados enviados para a nuvem!');
+               appAlert('Dados enviados para a nuvem!');
             })();
         }
 
@@ -3688,29 +3802,36 @@ renderPieChart('dash-chart-pie', cats);
         function importBackup(input) {
             const file = input.files[0];
             if (!file) return;
-            if (!confirm('Isso vai SUBSTITUIR todos os dados atuais pelos dados do backup. Continuar?')) {
-                input.value = '';
-                return;
-            }
+            lastImportFile = file;
+            lastImportInput = input;
+            appConfirm('Isso vai SUBSTITUIR todos os dados atuais pelos dados do backup. <br><small>Os dados atuais serao apagados.</small>', 'importBackupProceed()');
+        }
+
+        function importBackupProceed() {
+            const input = lastImportInput;
+            const file = lastImportFile;
+            lastImportFile = null;
+            lastImportInput = null;
+            if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     if (!data || data.app !== 'soundcontrol' || !Array.isArray(data.inventory) || !Array.isArray(data.rentals)) {
                         alert('Arquivo invalido. Use um backup gerado por este sistema.');
-                        input.value = '';
+                        if (input) input.value = '';
                         return;
                     }
                     inventory = data.inventory || [];
                     rentals = data.rentals || [];
                     clients = Array.isArray(data.clients) ? data.clients : [];
                     if (data.title !== undefined) localStorage.setItem('sc_title', data.title);
-if (data.theme !== undefined) localStorage.setItem('sc_theme', data.theme);
-                     if (data.style) localStorage.setItem('sc_style', data.style);
-                     save();
-                     applyTitle();
-                     applyTheme();
-                     applyCustomStyle();
+                    if (data.theme !== undefined) localStorage.setItem('sc_theme', data.theme);
+                    if (data.style) localStorage.setItem('sc_style', data.style);
+                    save();
+                    applyTitle();
+                    applyTheme();
+                    applyCustomStyle();
                     fillClientList();
                     renderInventory(); renderRentals(); renderClients(); renderEvents(); renderDashboard(); updateStats();
                     emptyInventoryTable();
@@ -3719,7 +3840,7 @@ if (data.theme !== undefined) localStorage.setItem('sc_theme', data.theme);
                 } catch (err) {
                     alert('Erro ao ler o arquivo: ' + err.message);
                 }
-                input.value = '';
+                if (input) input.value = '';
             };
             reader.readAsText(file);
         }
