@@ -11,6 +11,7 @@ create table if not exists public.inventory (
   "brand" text,
   "status" text,
   "notes" text,
+  "photo" text,
   "available" integer,
   "created_at" timestamptz default now()
 );

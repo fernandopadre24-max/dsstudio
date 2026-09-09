@@ -911,6 +911,11 @@
             .form-grid { grid-template-columns: 1fr; }
             .eq-selector { grid-template-columns: 1fr; }
         }
+        .photo-thumb {
+            width: 42px; height: 42px; object-fit: cover; border-radius: 8px;
+            cursor: pointer; display: block; border: 1px solid var(--border, rgba(255,255,255,0.12));
+        }
+        .photo-empty { opacity: 0.45; }
     </style>
 </head>
 <body>
@@ -1086,6 +1091,18 @@
                                 <label>Observacoes</label>
                                 <input type="text" id="eq-notes" placeholder="Informacoes adicionais...">
                             </div>
+                            <div class="form-group">
+                                <label>Foto (via internet)</label>
+                                <input type="url" id="eq-photo-url" placeholder="https://... URL da imagem" oninput="previewEqPhoto()">
+                            </div>
+                            <div class="form-group">
+                                <label>Foto (do PC)</label>
+                                <input type="file" id="eq-photo-file" accept="image/*" onchange="previewEqPhoto()">
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <img id="eq-photo-preview" alt="Preview da foto" style="display:none;max-height:150px;max-width:200px;border-radius:8px;object-fit:cover;">
+                                <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:6px;">Preencha um dos dois. A foto via PC e redimensionada automaticamente.</p>
+                            </div>
                         </div>
                         <div class="btn-group">
                             <button type="submit" class="btn btn-accent">&#10133; Adicionar ao Estoque</button>
@@ -1117,6 +1134,7 @@
                         <table>
                             <thead>
                                 <tr>
+                                    <th>Foto</th>
                                     <th>Nome</th>
                                     <th>Categoria</th>
                                     <th>Qtd Total</th>
@@ -1591,13 +1609,75 @@
                 notes: document.getElementById('eq-notes').value.trim(),
                 available: parseInt(document.getElementById('eq-qty').value)
             };
+            const url = document.getElementById('eq-photo-url').value.trim();
+            const file = document.getElementById('eq-photo-file').files[0];
+            if (file) {
+                processEqFile(file, function (dataUrl) {
+                    eq.photo = dataUrl;
+                    finalizeAddEquipment(eq);
+                });
+            } else {
+                if (url) eq.photo = url;
+                finalizeAddEquipment(eq);
+            }
+        }
+
+        function finalizeAddEquipment(eq) {
             inventory.push(eq);
             save();
             dbInsert('inventory', eq);
             document.getElementById('form-add-equipment').reset();
             document.getElementById('eq-qty').value = 1;
+            document.getElementById('eq-photo-preview').style.display = 'none';
             renderInventory();
             updateStats();
+        }
+
+        function previewEqPhoto() {
+            const img = document.getElementById('eq-photo-preview');
+            const url = document.getElementById('eq-photo-url').value.trim();
+            const file = document.getElementById('eq-photo-file').files[0];
+            if (file) {
+                const r = new FileReader();
+                r.onload = function () { img.src = r.result; img.style.display = 'block'; };
+                r.readAsDataURL(file);
+            } else if (url) {
+                img.onload = function () { img.style.display = 'block'; };
+                img.onerror = function () { img.style.display = 'none'; };
+                img.src = url;
+            } else {
+                img.removeAttribute('src');
+                img.style.display = 'none';
+            }
+        }
+
+        function processEqFile(file, cb) {
+            const r = new FileReader();
+            r.onload = function () {
+                const img = new Image();
+                img.onload = function () {
+                    const max = 700;
+                    let w = img.width, h = img.height;
+                    if (w > max || h > max) {
+                        const scale = Math.min(max / w, max / h);
+                        w = Math.round(w * scale); h = Math.round(h * scale);
+                    }
+                    const c = document.createElement('canvas');
+                    c.width = w; c.height = h;
+                    c.getContext('2d').drawImage(img, 0, 0, w, h);
+                    cb(c.toDataURL('image/jpeg', 0.72));
+                };
+                img.src = r.result;
+            };
+            r.readAsDataURL(file);
+        }
+
+        function viewPhoto(id) {
+            const eq = inventory.find(e => e.id === id);
+            if (!eq || !eq.photo) return;
+            if (eq.photo.indexOf('http') === 0) { window.open(eq.photo, '_blank'); return; }
+            document.getElementById('modal-content').innerHTML = `<img src="${eq.photo}" alt="" style="width:100%;max-height:75vh;object-fit:contain;border-radius:8px;">`;
+            document.getElementById('modal-bg').classList.add('active');
         }
 
         function deleteEquipment(id) {
@@ -1616,10 +1696,13 @@
             const a = prompt('Disponivel:', eq.available); if (a === null) return;
             const v = prompt('Valor Unitario (R$):', eq.value); if (v === null) return;
             const b = prompt('Marca/Modelo:', eq.brand); if (b === null) return;
+            const ph = prompt('Foto (cole uma URL de imagem, ou digite x para remover):', ''); if (ph === null) return;
 
             eq.name = n.trim(); eq.category = c.trim();
             eq.qty = parseInt(q) || eq.qty; eq.available = parseInt(a) || eq.available;
             eq.value = parseFloat(v) || eq.value; eq.brand = b.trim();
+            if (ph.trim().toLowerCase() === 'x') eq.photo = '';
+            else if (ph.trim()) eq.photo = ph.trim();
             save(); renderInventory(); updateStats();
             dbUpdate('inventory', eq);
         }
@@ -1642,6 +1725,7 @@
 
             tbody.innerHTML = filtered.map(eq => `
                 <tr>
+                    <td>${eq.photo ? `<img src="${escAttr(eq.photo)}" class="photo-thumb" alt="" onclick="viewPhoto(${eq.id})">` : '<span class="photo-thumb photo-empty">&#128247;</span>'}</td>
                     <td class="td-name">${eq.name}</td>
                     <td><span class="badge badge-accent">${eq.category}</span></td>
                     <td>${eq.qty}</td>
