@@ -3192,13 +3192,13 @@ initEquipmentPhotoSlots();
                     <div class="detail-item"><label>Status</label><p><span class="badge ${statusBadge(r.status)}">${r.status}</span></p></div>
                     <div class="detail-item"><label>Pagamento</label><p>${payBadge(r)}</p></div>
                     <div class="detail-item"><label>Recebido</label><p style="color:var(--green)">${fmtBRL(r.deposit || 0)}</p></div>
-                    <div class="detail-item"><label>Em Aberto</label><p style="color:${Math.max(0, (r.totalValue || 0) - (r.deposit || 0)) > 0 ? 'var(--red)' : 'var(--green)'}">${fmtBRL(Math.max(0, (r.totalValue || 0) - (r.deposit || 0)))}</p></div>
+                    <div class="detail-item"><label>Em Aberto</label><p style="color:${Math.max(0, netVal(r) - (r.deposit || 0)) > 0 ? 'var(--red)' : 'var(--green)'}">${fmtBRL(Math.max(0, netVal(r) - (r.deposit || 0)))}</p></div>
                 </div>
                 ${r.notes ? `<p style="margin-bottom:18px;color:var(--text-secondary);font-size:0.88rem">Observacoes: ${r.notes}</p>` : ''}
                 <div class="summary-box">
                     <h3>&#128230; Material Alugado</h3>
                     ${eqList}
-                    <div class="summary-total">Total Geral: ${fmtBRL(r.totalValue)}</div>
+                    <div class="summary-total">Total Aluguel: ${fmtBRL(r.totalValue)}</div>
                 </div>
                 ${(r.staff && r.staff.length) ? `
                 <div class="summary-box">
@@ -3206,6 +3206,10 @@ initEquipmentPhotoSlots();
                     ${stfList}
                     <div class="summary-total">Total Equipe: ${fmtBRL(r.staffTotal || 0)}</div>
                 </div>` : ''}
+                <div class="summary-box">
+                    <h3>&#128200; Liquido do Aluguel (total - equipe)</h3>
+                    <div class="summary-total">Total Liquido: ${fmtBRL(netVal(r))}</div>
+                </div>
                 <div class="btn-group" style="justify-content:flex-end;margin-top:16px;flex-wrap:wrap;">
                     <button type="button" class="btn btn-ghost" onclick="closeModal()">Fechar</button>
                     <button type="button" class="btn btn-ghost" onclick="closeModal(); editRental(${r.id})">&#9998; Editar</button>
@@ -3508,7 +3512,7 @@ initEquipmentPhotoSlots();
                     <td>${fmtDate(r.date)}</td>
                     <td>${r.timeStart}${r.timeEnd ? ' - ' + r.timeEnd : ''}</td>
                     <td>${r.equipment.map(e => e.qty + 'x ' + e.name).join(', ')}</td>
-                    <td><strong style="color:var(--green)">${fmtBRL(r.totalValue)}</strong></td>
+                    <td><strong style="color:var(--green)">${fmtBRL(netVal(r))}</strong></td>
                     <td>${payBadge(r)}</td>
                     <td><span class="badge ${statusBadge(r.status)}">${r.status}</span></td>
                     <td class="action-btns">
@@ -3534,7 +3538,7 @@ initEquipmentPhotoSlots();
         function payValue(r) { return r.deposit || 0; }
 
         function payBadge(r) {
-            const v = r.totalValue || 0;
+            const v = netVal(r);
             const rec = payValue(r);
             if (v <= 0) return '<span class="badge badge-accent">-</span>';
             if (rec >= v) return '<span class="badge badge-green">Pago</span>';
@@ -3579,7 +3583,7 @@ initEquipmentPhotoSlots();
                 if (!map[r.client]) map[r.client] = { qty: 0, total: 0, rec: 0, open: 0 };
                 const m = map[r.client];
                 m.qty++;
-                m.total += r.totalValue || 0;
+                m.total += netVal(r);
                 m.rec += payValue(r);
             });
 
@@ -3756,7 +3760,7 @@ initEquipmentPhotoSlots();
             if (!filtered.length) { tl.innerHTML = ''; st.innerHTML = ''; em.style.display = 'block'; return; }
             em.style.display = 'none';
 
-            const totalRev = filtered.reduce((s, r) => s + r.totalValue, 0);
+            const totalRev = filtered.reduce((s, r) => s + netVal(r), 0);
             const totalEq = filtered.reduce((s, r) => s + r.equipment.reduce((ss, e) => ss + e.qty, 0), 0);
 
             st.innerHTML = `
@@ -3780,7 +3784,7 @@ initEquipmentPhotoSlots();
                         <div>
                             <h3>${r.eventName}</h3>
                         </div>
-                        <div class="event-value">${fmtBRL(r.totalValue)}</div>
+                        <div class="event-value">${fmtBRL(netVal(r))}</div>
                     </div>
                     <div class="event-details">
                         <span>&#128100; ${r.client}</span>
@@ -3807,7 +3811,7 @@ initEquipmentPhotoSlots();
             const totalAvailable = inventory.reduce((s, eq) => s + eq.available, 0);
             const activeRentals = rentals.filter(r => r.status === 'agendado' || r.status === 'em andamento').length;
             const cm = new Date().toISOString().slice(0, 7);
-            const mr = rentals.filter(r => r.date && r.date.startsWith(cm)).reduce((s, r) => s + r.totalValue, 0);
+            const mr = rentals.filter(r => r.date && r.date.startsWith(cm)).reduce((s, r) => s + netVal(r), 0);
 
             document.getElementById('dash-total-equip').textContent = inventory.length;
             document.getElementById('dash-available').textContent = totalAvailable;
@@ -3815,7 +3819,7 @@ initEquipmentPhotoSlots();
             document.getElementById('dash-revenue').textContent = fmtBRL(mr);
 
             const sumRents = rentals.filter(r => r.status !== 'cancelado');
-            const sumTotal = sumRents.reduce((s, r) => s + (r.totalValue || 0), 0);
+            const sumTotal = sumRents.reduce((s, r) => s + netVal(r), 0);
             const sumReceived = sumRents.reduce((s, r) => s + (r.deposit || 0), 0);
             document.getElementById('dash-sum-total').textContent = fmtBRL(sumTotal);
             document.getElementById('dash-sum-received').textContent = fmtBRL(sumReceived);
@@ -3834,7 +3838,7 @@ initEquipmentPhotoSlots();
                         <div style="font-weight:600;font-size:0.92rem;margin-bottom:2px">${r.eventName}</div>
                         <div style="font-size:0.8rem;color:var(--text-secondary)">${fmtDate(r.date)} &bull; ${r.location}</div>
                     </div>
-                    <div style="font-weight:700;color:var(--green)">${fmtBRL(r.totalValue)}</div>
+                    <div style="font-weight:700;color:var(--green)">${fmtBRL(netVal(r))}</div>
                 </div>
             `).join('') : '<div class="empty-state"><div class="empty-icon">&#128197;</div><p>Nenhum evento proximo</p></div>';
 
@@ -3859,7 +3863,7 @@ initEquipmentPhotoSlots();
             for (let k = 5; k >= 0; k--) {
                 const d = new Date(today.getFullYear(), today.getMonth() - k, 1);
                 const mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-                const val = rentals.filter(r => r.date && r.date.startsWith(mk) && r.status !== 'cancelado').reduce((s, r) => s + (r.totalValue || 0), 0);
+                const val = rentals.filter(r => r.date && r.date.startsWith(mk) && r.status !== 'cancelado').reduce((s, r) => s + netVal(r), 0);
                 bars.push({ label: monthNames[d.getMonth()], value: val });
             }
             renderBarChart('dash-chart-bars', bars);
@@ -3881,7 +3885,7 @@ renderPieChart('dash-chart-pie', cats);
         function updateStats() {
             document.getElementById('stat-items').textContent = inventory.reduce((s, e) => s + e.qty, 0);
             document.getElementById('stat-events').textContent = rentals.length;
-            document.getElementById('stat-revenue').textContent = fmtBRL(rentals.reduce((s, r) => s + r.totalValue, 0));
+            document.getElementById('stat-revenue').textContent = fmtBRL(rentals.reduce((s, r) => s + netVal(r), 0));
         }
 
         // ===== CLIENTS =====
@@ -4032,10 +4036,10 @@ renderPieChart('dash-chart-pie', cats);
             if (!cl) return;
 
             const clRentals = rentals.filter(r => r.clientId === id);
-            const totalSpent = clRentals.reduce((s, r) => s + r.totalValue, 0);
+            const totalSpent = clRentals.reduce((s, r) => s + netVal(r), 0);
             const pendingValue = clRentals
                 .filter(r => r.status !== 'cancelado' && r.status !== 'concluido')
-                .reduce((s, r) => s + r.totalValue, 0);
+                .reduce((s, r) => s + netVal(r), 0);
             const pendingCount = clRentals.filter(r => r.status !== 'cancelado' && r.status !== 'concluido').length;
             const pendingPaid = clRentals
                 .filter(r => r.status !== 'cancelado' && r.status !== 'concluido')
@@ -4063,7 +4067,7 @@ renderPieChart('dash-chart-pie', cats);
             const rentRows = clRentals.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10).map(r =>
                 `<div class="summary-row">
                     <span>${fmtDate(r.date)} &bull; ${r.eventName} <span class="badge ${statusBadge(r.status)}" style="margin-left:6px">${r.status}</span></span>
-                    <span>${fmtBRL(r.totalValue)}</span>
+                    <span>${fmtBRL(netVal(r))}</span>
                 </div>`
             ).join('');
 
@@ -4112,7 +4116,7 @@ renderPieChart('dash-chart-pie', cats);
 
             tbody.innerHTML = filtered.map(c => {
                 const clRentals = rentals.filter(r => r.clientId === c.id);
-                const totalSpent = clRentals.reduce((s, r) => s + r.totalValue, 0);
+                const totalSpent = clRentals.reduce((s, r) => s + netVal(r), 0);
                 const lastDate = clRentals.length
                     ? clRentals.sort((a, b) => new Date(b.date) - new Date(a.date))[0].date
                     : null;
@@ -4627,6 +4631,10 @@ renderPieChart('dash-chart-pie', cats);
             return parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
+        function netVal(r) {
+            return (r.totalValue || 0) - (r.staffTotal || 0);
+        }
+
         function maskPhone(el) {
             let v = el.value.replace(/\D/g, '').slice(0, 11);
             if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
@@ -4792,7 +4800,7 @@ renderPieChart('dash-chart-pie', cats);
         }
 
         function payStatusOf(r) {
-            const v = r.totalValue || 0;
+            const v = netVal(r);
             const rec = payValue(r);
             if (v <= 0) return 'semvalor';
             if (rec >= v) return 'pago';
@@ -4854,7 +4862,7 @@ renderPieChart('dash-chart-pie', cats);
         function renderReports() {
             const month = document.getElementById('report-month').value;
             const scope = rentals.filter(r => r.status !== 'cancelado' && (!month || (r.date && r.date.startsWith(month))));
-            const totalRev = scope.reduce((s, r) => s + (r.totalValue || 0), 0);
+            const totalRev = scope.reduce((s, r) => s + netVal(r), 0);
             const received = scope.reduce((s, r) => s + (r.deposit || 0), 0);
             const open = Math.max(0, totalRev - received);
             const items = scope.reduce((s, r) => s + r.equipment.reduce((ss, e) => ss + (e.qty || 0), 0), 0);
@@ -4875,7 +4883,7 @@ renderPieChart('dash-chart-pie', cats);
                 const m = byMonth[mk];
                 m.ev++;
                 m.it += r.equipment.reduce((s, e) => s + (e.qty || 0), 0);
-                m.rec += r.totalValue || 0;
+                m.rec += netVal(r);
                 m.recv += r.deposit || 0;
             });
             const monthNames = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -4910,7 +4918,7 @@ renderPieChart('dash-chart-pie', cats);
             rentals.forEach(r => {
                 if (r.status === 'cancelado') return;
                 if (!clMap[r.client]) clMap[r.client] = { total: 0, rec: 0 };
-                clMap[r.client].total += r.totalValue || 0;
+                clMap[r.client].total += netVal(r);
                 clMap[r.client].rec += r.deposit || 0;
             });
             const topCl = Object.keys(clMap).map(n => ({ name: n, total: clMap[n].total, rec: clMap[n].rec })).sort((a, b) => b.total - a.total).slice(0, 10);
@@ -5256,8 +5264,8 @@ renderPieChart('dash-chart-pie', cats);
                 rows = clients.map(c => [c.type || '', c.name, c.doc || '', c.phone || '', c.whatsapp || '', c.email || '', c.instagram || '', c.birth || '', c.address || '', c.neighborhood || '', c.city || '', c.cep || '', c.sourced || '', c.notes || '']);
                 filename = backupFilename('clientes.csv');
             } else if (type === 'rentals') {
-                headers = ['Cliente', 'Telefone', 'Evento', 'Local', 'Data', 'Horario Inicio', 'Horario Fim', 'Valor Total (R$)', 'Recebido (R$)', 'Status', 'Observacoes', 'Material', 'Equipe'];
-                rows = rentals.map(r => [r.client, r.phone || '', r.eventName, r.location, fmtDate(r.date), r.timeStart, r.timeEnd || '', r.totalValue.toFixed(2).replace('.', ','), (r.deposit || 0).toFixed(2).replace('.', ','), r.status, r.notes || '', r.equipment.map(e => e.qty + 'x ' + e.name).join('; '), (r.staff || []).map(x => x.empName + ' (R$' + String(x.value).replace('.', ',') + ')').join('; ')]);
+                headers = ['Cliente', 'Telefone', 'Evento', 'Local', 'Data', 'Horario Inicio', 'Horario Fim', 'Valor Total (R$)', 'Valor Equipe (R$)', 'Liquido (R$)', 'Recebido (R$)', 'Status', 'Observacoes', 'Material', 'Equipe'];
+                rows = rentals.map(r => [r.client, r.phone || '', r.eventName, r.location, fmtDate(r.date), r.timeStart, r.timeEnd || '', r.totalValue.toFixed(2).replace('.', ','), (r.staffTotal || 0).toFixed(2).replace('.', ','), netVal(r).toFixed(2).replace('.', ','), (r.deposit || 0).toFixed(2).replace('.', ','), r.status, r.notes || '', r.equipment.map(e => e.qty + 'x ' + e.name).join('; '), (r.staff || []).map(x => x.empName + ' (R$' + String(x.value).replace('.', ',') + ')').join('; ')]);
                 filename = backupFilename('alugueis.csv');
             } else {
                 return;
@@ -5414,7 +5422,7 @@ renderPieChart('dash-chart-pie', cats);
             const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
             const today = new Date();
             const monthRents = rentals.filter(r => r.date && r.date.startsWith(mk) && r.status !== 'cancelado');
-            const totalMonth = monthRents.reduce((s, r) => s + (r.totalValue || 0), 0);
+            const totalMonth = monthRents.reduce((s, r) => s + netVal(r), 0);
 
             let cells = '';
             for (let i = 0; i < startWeek; i++) cells += '<div class="cal-cell cal-empty"></div>';
@@ -5423,7 +5431,7 @@ renderPieChart('dash-chart-pie', cats);
                 const evs = monthRents.filter(r => r.date === key);
                 const isToday = today.getFullYear() === calYear && today.getMonth() === calMonth && today.getDate() === d;
                 const has = evs.length > 0;
-                const title = has ? ' title="' + evs.map(e => e.eventName + ': ' + fmtBRL(e.totalValue)).join(' | ').replace(/"/g, '&quot;') + '"' : '';
+                const title = has ? ' title="' + evs.map(e => e.eventName + ': ' + fmtBRL(netVal(e))).join(' | ').replace(/"/g, '&quot;') + '"' : '';
                 const click = has ? ' onclick="closeModal(); viewRental(' + evs[0].id + ')"' : '';
                 cells += '<div class="cal-cell' + (isToday ? ' cal-today' : '') + (has ? ' cal-has' : '') + '"' + title + click + '>' + d + (has ? '<div class="cal-dot"></div>' : '') + '</div>';
             }
@@ -5446,7 +5454,7 @@ renderPieChart('dash-chart-pie', cats);
                             '<div class="cal-event" onclick="closeModal(); viewRental(' + r.id + ')">' +
                                 '<span class="ce-date">' + fmtDate(r.date) + '</span>' +
                                 '<span class="ce-name">' + r.eventName + '</span>' +
-                                '<span class="ce-val">' + fmtBRL(r.totalValue) + '</span>' +
+                                '<span class="ce-val">' + fmtBRL(netVal(r)) + '</span>' +
                             '</div>').join('')
                         : '<div class="cal-events-empty">Nenhum evento cadastrado neste mes</div>'}
                 </div>`;
