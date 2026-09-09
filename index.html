@@ -1414,9 +1414,12 @@
         let db = null;
         let dbOnline = false;
 
+        const DEFAULT_DB_URL = 'https://cufhwzzzigggrqjmqdzi.supabase.co';
+        const DEFAULT_DB_KEY = 'sb_publishable_O3AZZ79i5JQXnlLyLgxyYQ_BFu-yIdX';
+
         function dbConfig() {
-            const url = localStorage.getItem('sc_db_url') || '';
-            const key = localStorage.getItem('sc_db_key') || '';
+            const url = localStorage.getItem('sc_db_url') || DEFAULT_DB_URL;
+            const key = localStorage.getItem('sc_db_key') || DEFAULT_DB_KEY;
             return { url, key };
         }
 
