@@ -2237,6 +2237,7 @@
                     </div>
                     <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
                         <button type="button" class="btn btn-ghost" onclick="cancelInlineEdit()">Cancelar</button>
+                        <button type="button" class="btn btn-danger-ghost" onclick="cancelInlineEdit(); deleteEquipment(${eq.id})">&#128465; Excluir</button>
                         <button type="button" class="btn btn-accent" onclick="saveEquipmentEdits(${eq.id})">&#10003; Salvar</button>
                     </div>
                 </div>`;
@@ -2538,6 +2539,7 @@
                     </div>
                     <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
                         <button type="button" class="btn btn-ghost" onclick="cancelInlineEdit()">Cancelar</button>
+                        <button type="button" class="btn btn-danger-ghost" onclick="cancelInlineEdit(); deleteRental(${r.id})">&#128465; Excluir</button>
                         <button type="button" class="btn btn-accent" onclick="saveRentalEdits(${r.id})">&#10003; Salvar Alteracoes</button>
                     </div>
                 </div>`;
