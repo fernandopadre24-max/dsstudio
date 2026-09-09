@@ -908,6 +908,150 @@
             min-width: 160px;
         }
 
+        .filter-chk {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        .filter-chk input {
+            accent-color: var(--accent);
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+
+        /* ===== GRAFICOS ===== */
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-row .card {
+            margin-bottom: 0;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 200px;
+            padding: 14px 8px 0;
+        }
+
+        .bar-col {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            height: 100%;
+        }
+
+        .bar {
+            width: 100%;
+            max-width: 44px;
+            border-radius: 8px 8px 2px 2px;
+            background: var(--gradient-1);
+            min-height: 3px;
+            transition: height 0.5s ease;
+        }
+
+        .bar:hover {
+            background: var(--gradient-2);
+            cursor: pointer;
+        }
+
+        .bar-value {
+            font-size: 0.64rem;
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .bar-label {
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pie-flex {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            flex-wrap: wrap;
+            padding: 6px 0;
+        }
+
+        .pie-chart {
+            position: relative;
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .pie-chart::after {
+            content: '';
+            position: absolute;
+            inset: 38px;
+            border-radius: 50%;
+            background: var(--bg-card);
+        }
+
+        .chart-legend {
+            flex: 1;
+            min-width: 150px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.76rem;
+            color: var(--text);
+        }
+
+        .legend-dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 4px;
+            flex-shrink: 0;
+            border: 1px solid var(--border);
+        }
+
+        .legend-item .lv {
+            margin-left: auto;
+            font-weight: 700;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .legend-item .ellipsis {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         /* ===== SCROLLBAR ===== */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -918,6 +1062,7 @@
         @media (max-width: 900px) {
             .dash-grid { grid-template-columns: 1fr 1fr; }
             .dash-row { grid-template-columns: 1fr; }
+            .chart-row { grid-template-columns: 1fr; }
             .modal .detail-grid { grid-template-columns: 1fr; }
         }
 
@@ -1050,6 +1195,21 @@
                     </div>
                 </div>
 
+                <div class="dash-row">
+                    <div class="card">
+                        <div class="card-title">
+                            <div class="icon">&#128202;</div> Faturamento - Ultimos 6 Meses
+                        </div>
+                        <div class="bar-chart" id="dash-chart-bars"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">
+                            <div class="icon">&#128230;</div> Receita por Categoria
+                        </div>
+                        <div class="pie-flex" id="dash-chart-pie"></div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-title">
                         <div class="icon">&#128190;</div> Backup e Exportacao
@@ -1165,6 +1325,14 @@
                             <option value="Amplificador">Amplificador</option>
                             <option value="Outro">Outro</option>
                         </select>
+                        <select id="filter-inv-status" onchange="renderInventory()">
+                            <option value="">Todos status</option>
+                            <option value="disponivel">Disponivel</option>
+                            <option value="manutencao">Em Manutencao</option>
+                        </select>
+                        <label class="filter-chk" title="Mostrar somente itens sem disponibilidade">
+                            <input type="checkbox" id="filter-inv-zero" onchange="renderInventory()"> Sem estoque
+                        </label>
                     </div>
                     <div class="table-wrap">
                         <table>
@@ -1311,6 +1479,13 @@
                             <option value="concluido">Concluido</option>
                             <option value="cancelado">Cancelado</option>
                         </select>
+                        <select id="filter-rentals-pay" onchange="renderRentals()">
+                            <option value="">Todos pagamentos</option>
+                            <option value="pago">Pago</option>
+                            <option value="parcial">Parcial</option>
+                            <option value="aberto">Em aberto</option>
+                        </select>
+                        <input type="month" id="filter-rentals-month" onchange="renderRentals()" title="Filtrar por mes">
                     </div>
                     <div class="table-wrap">
                         <table>
@@ -1425,6 +1600,16 @@
                     </div>
                     <div class="search-bar">
                         <input type="text" id="search-clients" placeholder="Buscar cliente..." oninput="renderClients()">
+                        <select id="filter-client-type" onchange="renderClients()">
+                            <option value="">Todos tipos</option>
+                            <option value="Pessoa Fisica">Pessoa Fisica</option>
+                            <option value="Pessoa Juridica">Pessoa Juridica</option>
+                        </select>
+                        <select id="filter-client-active" onchange="renderClients()">
+                            <option value="">Todos</option>
+                            <option value="com">Com alugueis</option>
+                            <option value="sem">Sem alugueis</option>
+                        </select>
                     </div>
                     <div class="table-wrap">
                         <table>
@@ -1469,6 +1654,10 @@
                                 <option value="concluido">Concluido</option>
                                 <option value="cancelado">Cancelado</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Buscar</label>
+                            <input type="text" id="search-events" placeholder="Cliente, evento ou local..." oninput="renderEvents()">
                         </div>
                     </div>
                     <div class="stats-row" id="events-stats"></div>
@@ -1516,6 +1705,27 @@
                             </thead>
                             <tbody id="report-monthly"></tbody>
                         </table>
+                    </div>
+                </div>
+
+                <div class="chart-row">
+                    <div class="card">
+                        <div class="card-title">
+                            <div class="icon">&#128202;</div> Grafico: Faturamento por Mes
+                        </div>
+                        <div class="bar-chart" id="report-chart-bars"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">
+                            <div class="icon">&#128230;</div> Receita por Categoria
+                        </div>
+                        <div class="pie-flex" id="report-chart-pie-cat"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">
+                            <div class="icon">&#128197;</div> Status dos Alugueis
+                        </div>
+                        <div class="pie-flex" id="report-chart-pie-status"></div>
                     </div>
                 </div>
 
@@ -1966,11 +2176,15 @@
         function renderInventory() {
             const search = document.getElementById('search-inventory').value.toLowerCase();
             const cat = document.getElementById('filter-category').value;
+            const fs = document.getElementById('filter-inv-status').value;
+            const zero = document.getElementById('filter-inv-zero').checked;
 
             let filtered = inventory.filter(eq => {
                 const ms = eq.name.toLowerCase().includes(search) || (eq.brand && eq.brand.toLowerCase().includes(search));
                 const mc = !cat || eq.category === cat;
-                return ms && mc;
+                const mss = !fs || eq.status === fs;
+                const mz = !zero || eq.available <= 0;
+                return ms && mc && mss && mz;
             });
 
             const tbody = document.getElementById('inventory-table');
@@ -2179,10 +2393,14 @@
             renderClientSummary();
             const search = document.getElementById('search-rentals').value.toLowerCase();
             const fs = document.getElementById('filter-rental-status').value;
+            const fp = document.getElementById('filter-rentals-pay').value;
+            const fm = document.getElementById('filter-rentals-month').value;
 
             let filtered = rentals.filter(r => {
                 const ms = r.client.toLowerCase().includes(search) || r.eventName.toLowerCase().includes(search) || r.location.toLowerCase().includes(search);
-                return ms && (!fs || r.status === fs);
+                const mpay = !fp || payStatusOf(r) === fp;
+                const mmonth = !fm || (r.date && r.date.startsWith(fm));
+                return ms && (!fs || r.status === fs) && mpay && mmonth;
             }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
             const tbody = document.getElementById('rentals-table');
@@ -2299,6 +2517,10 @@
             if (inp) inp.value = name;
             const st = document.getElementById('filter-rental-status');
             if (st) st.value = '';
+            const fp = document.getElementById('filter-rentals-pay');
+            if (fp) fp.value = '';
+            const fm = document.getElementById('filter-rentals-month');
+            if (fm) fm.value = '';
             renderRentals();
             const t = document.getElementById('rentals-table');
             if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2412,9 +2634,11 @@
         function renderEvents() {
             const mf = document.getElementById('filter-events-month').value;
             const sf = document.getElementById('filter-events-status').value;
+            const sq = (document.getElementById('search-events').value || '').toLowerCase();
 
             let filtered = rentals.filter(r => {
-                return (!mf || (r.date && r.date.startsWith(mf))) && (!sf || r.status === sf);
+                const ms = !sq || r.client.toLowerCase().includes(sq) || r.eventName.toLowerCase().includes(sq) || r.location.toLowerCase().includes(sq);
+                return ms && (!mf || (r.date && r.date.startsWith(mf))) && (!sf || r.status === sf);
             }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
             const tl = document.getElementById('events-timeline');
@@ -2493,6 +2717,32 @@
                     <div style="font-weight:700;color:var(--yellow)">${eq.available}/${eq.qty}</div>
                 </div>
             `).join('') : '<div class="empty-state"><div class="empty-icon">&#9989;</div><p>Tudo em ordem</p></div>';
+            dashCharts();
+        }
+
+        function dashCharts() {
+            const monthNames = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            const today = new Date();
+            const bars = [];
+            for (let k = 5; k >= 0; k--) {
+                const d = new Date(today.getFullYear(), today.getMonth() - k, 1);
+                const mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                const val = rentals.filter(r => r.date && r.date.startsWith(mk) && r.status !== 'cancelado').reduce((s, r) => s + (r.totalValue || 0), 0);
+                bars.push({ label: monthNames[d.getMonth()], value: val });
+            }
+            renderBarChart('dash-chart-bars', bars);
+
+            const catMap = {};
+            rentals.forEach(r => {
+                if (r.status === 'cancelado') return;
+                (r.equipment || []).forEach(e => {
+                    const eq = inventory.find(x => x.id === e.id);
+                    const cat = eq ? eq.category : (e.category || 'Outro');
+                    catMap[cat] = (catMap[cat] || 0) + (e.qty || 0) * (e.unitValue || 0);
+                });
+            });
+            const cats = Object.keys(catMap).map(n => ({ label: n, value: catMap[n] })).sort((a, b) => b.value - a.value);
+renderPieChart('dash-chart-pie', cats);
         }
 
         // ===== STATS =====
@@ -2710,11 +2960,17 @@
 
         function renderClients() {
             const search = document.getElementById('search-clients').value.toLowerCase();
+            const ft = document.getElementById('filter-client-type').value;
+            const fa = document.getElementById('filter-client-active').value;
 
             let filtered = clients.filter(c => {
-                return c.name.toLowerCase().includes(search) ||
+                const ms = c.name.toLowerCase().includes(search) ||
                        (c.phone && c.phone.includes(search)) ||
                        (c.city && c.city.toLowerCase().includes(search));
+                const mt = !ft || c.type === ft;
+                const hasRent = rentals.some(r => r.clientId === c.id);
+                const ma = !fa || (fa === 'com' ? hasRent : !hasRent);
+                return ms && mt && ma;
             }).sort((a, b) => a.name.localeCompare(b.name));
 
             const tbody = document.getElementById('clients-table');
@@ -2797,6 +3053,66 @@
 
         function statusBadge(s) {
             return { 'agendado': 'badge-yellow', 'em andamento': 'badge-blue', 'concluido': 'badge-green', 'cancelado': 'badge-red' }[s] || 'badge-accent';
+        }
+
+        // ===== GRAFICOS =====
+        const CHART_COLORS = ['var(--accent)', 'var(--accent-2)', 'var(--green)', 'var(--blue)', 'var(--yellow)', 'var(--orange)', 'var(--red)'];
+
+        function fmtShortMoney(v) {
+            v = parseFloat(v || 0);
+            if (v >= 1000) {
+                const k = v / 1000;
+                return (k >= 100 ? Math.round(k) : k.toFixed(1)) + 'k';
+            }
+            return Math.round(v).toString();
+        }
+
+        function renderBarChart(id, items) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (!items || !items.length) { el.innerHTML = '<div class="empty-state" style="width:100%;"><p>Sem dados</p></div>'; return; }
+            const max = Math.max.apply(null, items.map(i => i.value || 0)) || 1;
+            el.innerHTML = items.map(i => {
+                const h = Math.max(3, Math.round((i.value / max) * 100));
+                return `<div class="bar-col" title="${escAttr(i.label)}: ${fmtBRL(i.value)}">
+                    <div class="bar-value">${fmtShortMoney(i.value)}</div>
+                    <div class="bar" style="height:${h}%;"></div>
+                    <div class="bar-label">${escAttr(i.label)}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderPieChart(id, items) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (!items || !items.length) { el.innerHTML = '<div class="empty-state" style="width:100%;"><p>Sem dados</p></div>'; return; }
+            const total = items.reduce((s, i) => s + (i.value || 0), 0) || 1;
+            let acc = 0;
+            const segs = items.map((i, idx) => {
+                const from = (acc / total) * 360;
+                acc += i.value;
+                const to = (acc / total) * 360;
+                return CHART_COLORS[idx % CHART_COLORS.length] + ' ' + from.toFixed(2) + 'deg ' + to.toFixed(2) + 'deg';
+            });
+            const bg = 'conic-gradient(' + segs.join(', ') + ')';
+            const legend = items.map((i, idx) => `
+                <div class="legend-item" title="${escAttr(i.label)}">
+                    <span class="legend-dot" style="background:${CHART_COLORS[idx % CHART_COLORS.length]}"></span>
+                    <span class="ellipsis">${escAttr(i.label)}</span>
+                    <span class="lv">${fmtShortMoney(i.value)}</span>
+                </div>`).join('');
+            el.innerHTML = `
+                <div class="pie-chart" style="background:${bg}"></div>
+                <div class="chart-legend">${legend}</div>`;
+        }
+
+        function payStatusOf(r) {
+            const v = r.totalValue || 0;
+            const rec = payValue(r);
+            if (v <= 0) return 'semvalor';
+            if (rec >= v) return 'pago';
+            if (rec > 0) return 'parcial';
+            return 'aberto';
         }
 
         // ===== SETTINGS (titulo e tema) =====
@@ -2904,6 +3220,27 @@
             document.getElementById('report-top-clients').innerHTML = topCl.length ? topCl.map((c, i) => `
                 <div class="summary-row"><span>${i + 1}. ${escAttr(c.name)}</span><span>${fmtBRL(c.total)} &bull; em aberto ${fmtBRL(Math.max(0, c.total - c.rec))}</span></div>
             `).join('') : '<p style="color:var(--text-secondary);text-align:center;padding:12px;">Sem dados</p>';
+
+            const chrono = months.slice().reverse();
+            renderBarChart('report-chart-bars', chrono.map(mk => {
+                const [y, mo] = mk.split('-');
+                return { label: monthNames[parseInt(mo)] + '/' + y.slice(2), value: byMonth[mk].rec };
+            }));
+
+            const catMap2 = {};
+            scope.forEach(r => {
+                (r.equipment || []).forEach(e => {
+                    const eq = inventory.find(x => x.id === e.id);
+                    const cat = eq ? eq.category : (e.category || 'Outro');
+                    catMap2[cat] = (catMap2[cat] || 0) + (e.qty || 0) * (e.unitValue || 0);
+                });
+            });
+            renderPieChart('report-chart-pie-cat', Object.keys(catMap2).map(n => ({ label: n, value: catMap2[n] })).sort((a, b) => b.value - a.value));
+
+            const stLbl = { 'agendado': 'Agendado', 'em andamento': 'Em Andamento', 'concluido': 'Concluido', 'cancelado': 'Cancelado' };
+            const stCnt = {};
+            scope.forEach(r => { stCnt[r.status] = (stCnt[r.status] || 0) + 1; });
+            renderPieChart('report-chart-pie-status', Object.keys(stCnt).map(k => ({ label: stLbl[k] || k, value: stCnt[k] })));
         }
 
         // ===== SETTINGS =====
