@@ -2694,11 +2694,11 @@
                                     (p.indexOf('http') === 0 ? '</a>' : '') +
                                     '<button type="button" class="btn btn-danger-ghost btn-sm" onclick="removeEditPhoto(' + i + ')">&#10005;</button></div>').join('');
                             })()}</div>
-                            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
-                                <input type="url" id="ee-photo-add" placeholder="URL de nova foto" style="flex:1;min-width:140px;">
-                                <input type="file" id="ee-photo-file" accept="image/*">
+                            <div id="ee-photo-slots" style="margin-top:8px;"></div>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="addEditPhotoSlot()">&#43; Adicionar foto</button>
                             </div>
-                            <p style="font-size:0.78rem;color:var(--text-secondary);margin-top:4px;">Para remover, use o X. Para adicionar, informe a URL ou o arquivo e clique em Salvar.</p>
+                            <p style="font-size:0.78rem;color:var(--text-secondary);margin-top:4px;">Para remover, use o X na miniatura. Preencha os campos acima (URL ou arquivo) e clique em Salvar para incluir as novas fotos.</p>
                         </div>
                     </div>
                     <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
@@ -2715,6 +2715,22 @@
             editingEqId = id;
             editingEqBackup = { name: eq.name, category: eq.category, qty: eq.qty, available: eq.available, value: eq.value, brand: eq.brand, status: eq.status, supplier: eq.supplier, notes: eq.notes, photo: eq.photo, photos: (eq.photos || []).slice() };
             renderInventory();
+            initEditPhotoSlots();
+        }
+
+        function initEditPhotoSlots() {
+            const c = document.getElementById('ee-photo-slots');
+            if (!c || c.children.length) return;
+            c.innerHTML = eqPhotoSlotHTML() + eqPhotoSlotHTML() + eqPhotoSlotHTML();
+        }
+
+        function addEditPhotoSlot() {
+            const c = document.getElementById('ee-photo-slots');
+            if (!c) return;
+            const eq = inventory.find(e => e.id === editingEqId);
+            const cur = (eq && eq.photos && eq.photos.length ? eq.photos.length : (eq && eq.photo ? 1 : 0)) + c.children.length;
+            if (cur >= 8) { appAlert('Maximo de 8 fotos por produto.'); return; }
+            c.insertAdjacentHTML('beforeend', eqPhotoSlotHTML());
         }
 
         function saveEquipmentEdits(id) {
@@ -2728,9 +2744,14 @@
             eq.brand = document.getElementById('ee-brand').value.trim();
             eq.status = document.getElementById('ee-status').value;
             eq.supplier = document.getElementById('ee-supplier').value;
-            const addUrl = (document.getElementById('ee-photo-add').value || '').trim();
-            const addFile = document.getElementById('ee-photo-file').files[0];
-            const finish = function () {
+            const slots = Array.prototype.map.call(document.querySelectorAll('#ee-photo-slots .eq-photo-slot'), function (s) {
+                return { url: s.querySelector('input[type=url]').value.trim(), file: s.querySelector('input[type=file]').files[0] };
+            });
+            const finish = function (newPhotos) {
+                if (newPhotos && newPhotos.length) {
+                    eq.photos = eq.photos || [];
+                    newPhotos.forEach(function (p) { eq.photos.push(p); });
+                }
                 eq.photos = (eq.photos && eq.photos.length ? eq.photos : (eq.photo ? [eq.photo] : []));
                 eq.photo = eq.photos.length ? eq.photos[0] : '';
                 editingEqId = null;
@@ -2738,16 +2759,7 @@
                 save(); renderInventory(); updateStats(); refreshCurrentPage();
                 dbUpdate('inventory', eq);
             };
-            if (addFile) {
-                processEqFile(addFile, function (dataUrl) {
-                    eq.photos = eq.photos || [];
-                    eq.photos.push(dataUrl);
-                    finish();
-                });
-            } else {
-                if (addUrl) { eq.photos = eq.photos || []; eq.photos.push(addUrl); }
-                finish();
-            }
+            collectEquipmentPhotos(slots, finish);
         }
 
         function removeEditPhoto(i) {
@@ -2759,6 +2771,7 @@
             if (eq.photos.length) eq.photo = eq.photos[0];
             else eq.photo = '';
             renderInventory();
+            initEditPhotoSlots();
         }
 
         function renderInventory() {
@@ -2812,6 +2825,7 @@
                     </td>
                 </tr>`;
             }).join('');
+            if (editingEqId !== null) initEditPhotoSlots();
         }
 
         // ===== RENTALS =====
