@@ -1783,7 +1783,7 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Tipo</label>
-                                <select id="cl-type">
+                                <select id="cl-type" onchange="onClientTypeChange()">
                                     <option value="Pessoa Fisica">Pessoa Fisica</option>
                                     <option value="Pessoa Juridica">Pessoa Juridica</option>
                                 </select>
@@ -1793,8 +1793,8 @@
                                 <input type="text" id="cl-name" required placeholder="Nome completo">
                             </div>
                             <div class="form-group">
-                                <label>CPF / CNPJ</label>
-                                <input type="text" id="cl-doc" placeholder="000.000.000-00" oninput="maskDoc(this)">
+                                <label id="cl-doc-label">CPF</label>
+                                <input type="text" id="cl-doc" placeholder="000.000.000-00" oninput="maskClientDoc(this)">
                             </div>
                             <div class="form-group">
                                 <label>Telefone</label>
@@ -1813,7 +1813,7 @@
                                 <input type="text" id="cl-instagram" placeholder="@usuario">
                             </div>
                             <div class="form-group">
-                                <label>Data de Nascimento</label>
+                                <label id="cl-birth-label">Data de Nascimento</label>
                                 <input type="date" id="cl-birth">
                             </div>
                             <div class="form-group">
@@ -3590,12 +3590,12 @@ renderPieChart('dash-chart-pie', cats);
                     <div class="form-grid">
                         ${select('Tipo', 'edit-cl-type', cl.type || 'Pessoa Fisica', ['Pessoa Fisica', 'Pessoa Juridica'])}
                         ${field('Nome', 'edit-cl-name', cl.name || '', 'Nome completo')}
-                        ${field('CPF / CNPJ', 'edit-cl-doc', cl.doc || '', '000.000.000-00')}
+                        <div class="form-group"><label id="edit-cl-doc-label">CPF / CNPJ</label><input type="text" id="edit-cl-doc" value="${escAttr(cl.doc || '')}" placeholder="000.000.000-00"></div>
                         ${field('Telefone', 'edit-cl-phone', cl.phone || '', '(00) 00000-0000')}
                         ${field('WhatsApp', 'edit-cl-whatsapp', cl.whatsapp || '', '(00) 00000-0000')}
                         ${field('E-mail', 'edit-cl-email', cl.email || '', 'email@exemplo.com', 'email')}
                         ${field('Instagram', 'edit-cl-instagram', cl.instagram || '', '@usuario')}
-                        ${field('Data de Nascimento', 'edit-cl-birth', birthVal, '', 'date')}
+                        <div class="form-group"><label id="edit-cl-birth-label">${cl.type === 'Pessoa Juridica' ? 'Data de Fundacao' : 'Data de Nascimento'}</label><input type="date" id="edit-cl-birth" value="${escAttr(birthVal)}"></div>
                         ${field('Endereco', 'edit-cl-address', cl.address || '', 'Rua, numero')}
                         ${field('Bairro', 'edit-cl-neighborhood', cl.neighborhood || '', 'Bairro')}
                         ${field('Cidade', 'edit-cl-city', cl.city || '', 'Ex: Sao Paulo')}
@@ -3617,10 +3617,13 @@ renderPieChart('dash-chart-pie', cats);
                     </div>
                 </form>
             `;
-            [['edit-cl-doc', maskDoc], ['edit-cl-phone', maskPhone], ['edit-cl-whatsapp', maskPhone], ['edit-cl-cep', maskCep]].forEach(([idn, fn]) => {
+            [['edit-cl-doc', function (el) { maskDocType(el, (document.getElementById('edit-cl-type') || {}).value === 'Pessoa Juridica'); }], ['edit-cl-phone', maskPhone], ['edit-cl-whatsapp', maskPhone], ['edit-cl-cep', maskCep]].forEach(([idn, fn]) => {
                 const el = document.getElementById(idn);
                 if (el) el.addEventListener('input', function() { fn(this); });
             });
+            const et = document.getElementById('edit-cl-type');
+            if (et) et.addEventListener('change', onEditClientTypeChange);
+            onEditClientTypeChange();
             document.getElementById('modal-bg').classList.add('active');
         }
 
@@ -3962,6 +3965,52 @@ renderPieChart('dash-chart-pie', cats);
             else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,5})$/, '($1) $2');
             else if (v.length > 0) v = v.replace(/^(\d{0,2})/, '($1');
             el.value = v;
+        }
+
+        function maskDocType(el, isPj) {
+            if (!el) return;
+            let v = el.value.replace(/\D/g, '');
+            if (isPj) {
+                v = v.slice(0, 14);
+                if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})$/, '$1.$2.$3/$4-$5');
+                else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})$/, '$1.$2.$3/$4');
+                else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3})$/, '$1.$2.$3');
+                else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3})$/, '$1.$2');
+            } else {
+                v = v.slice(0, 11);
+                if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})$/, '$1.$2.$3-$4');
+                else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3})$/, '$1.$2.$3');
+                else if (v.length > 3) v = v.replace(/^(\d{3})(\d{0,3})$/, '$1.$2');
+            }
+            el.value = v;
+        }
+
+        function onClientTypeChange() {
+            const elType = document.getElementById('cl-type');
+            if (!elType) return;
+            const isPj = elType.value === 'Pessoa Juridica';
+            const lbl = document.getElementById('cl-doc-label');
+            if (lbl) lbl.textContent = isPj ? 'CNPJ' : 'CPF';
+            const doc = document.getElementById('cl-doc');
+            if (doc) { doc.placeholder = isPj ? '00.000.000/0000-00' : '000.000.000-00'; maskDocType(doc, isPj); }
+            const blbl = document.getElementById('cl-birth-label');
+            if (blbl) blbl.textContent = isPj ? 'Data de Fundacao' : 'Data de Nascimento';
+        }
+
+        function maskClientDoc(el) {
+            maskDocType(el, !!document.getElementById('cl-type') && document.getElementById('cl-type').value === 'Pessoa Juridica');
+        }
+
+        function onEditClientTypeChange() {
+            const elType = document.getElementById('edit-cl-type');
+            if (!elType) return;
+            const isPj = elType.value === 'Pessoa Juridica';
+            const lbl = document.getElementById('edit-cl-doc-label');
+            if (lbl) lbl.textContent = isPj ? 'CNPJ' : 'CPF';
+            const doc = document.getElementById('edit-cl-doc');
+            if (doc) { doc.placeholder = isPj ? '00.000.000/0000-00' : '000.000.000-00'; maskDocType(doc, isPj); }
+            const blbl = document.getElementById('edit-cl-birth-label');
+            if (blbl) blbl.textContent = isPj ? 'Data de Fundacao' : 'Data de Nascimento';
         }
 
         function maskDoc(el) {
