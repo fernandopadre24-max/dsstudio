@@ -51,12 +51,15 @@ create table if not exists public.rentals (
   "status" text,
   "notes" text,
   "equipment" jsonb default '[]'::jsonb,
+  "staff" jsonb default '[]'::jsonb,
+  "staffTotal" numeric default 0,
   "created_at" timestamptz default now()
 );
 
 create table if not exists public.suppliers (
   "id" bigint primary key,
   "name" text,
+  "type" text,
   "cnpj" text,
   "phone" text,
   "whatsapp" text,
@@ -69,6 +72,21 @@ create table if not exists public.suppliers (
   "created_at" timestamptz default now()
 );
 
+create table if not exists public.staff (
+  "id" bigint primary key,
+  "code" text,
+  "name" text,
+  "photo" text,
+  "services" jsonb default '[]'::jsonb,
+  "avail" text,
+  "phone" text,
+  "whatsapp" text,
+  "email" text,
+  "city" text,
+  "notes" text,
+  "created_at" timestamptz default now()
+);
+
 -- ============================================================
 -- Permissoes de acesso (anon) para o app funcionar direto
 -- ============================================================
@@ -76,6 +94,7 @@ alter table public.inventory enable row level security;
 alter table public.clients enable row level security;
 alter table public.rentals enable row level security;
 alter table public.suppliers enable row level security;
+alter table public.staff enable row level security;
 
 create policy "anon inventory all" on public.inventory
   for all using (true) with check (true);
@@ -85,8 +104,11 @@ create policy "anon rentals all" on public.rentals
   for all using (true) with check (true);
 create policy "anon suppliers all" on public.suppliers
   for all using (true) with check (true);
+create policy "anon staff all" on public.staff
+  for all using (true) with check (true);
 
 grant all on public.inventory to anon, authenticated;
 grant all on public.clients to anon, authenticated;
 grant all on public.rentals to anon, authenticated;
 grant all on public.suppliers to anon, authenticated;
+grant all on public.staff to anon, authenticated;

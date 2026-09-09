@@ -1321,6 +1321,9 @@
         .ee-photo-item img { height:56px; width:56px; object-fit:cover; border-radius:8px; }
         .ee-photo-item button { position:absolute; top:-8px; right:-8px; border-radius:50%; min-width:22px; height:22px; padding:0; font-size:0.7rem; }
         textarea { min-height: 88px; resize: vertical; }
+        .st-service-row { display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap; }
+        .st-service-row select { flex:1; min-width:130px; }
+        .st-service-row input[type=number] { width:120px; }
     </style>
 </head>
 <body>
@@ -1373,6 +1376,9 @@
             </button>
             <button data-page="suppliers">
                 <span class="nav-icon">&#128666;</span> <span class="nav-label">Fornecedores</span>
+            </button>
+            <button data-page="staff">
+                <span class="nav-icon">&#128736;</span> <span class="nav-label">Funcionarios</span>
             </button>
             <button data-page="events">
                 <span class="nav-icon">&#127751;</span> <span class="nav-label">Eventos</span>
@@ -1696,6 +1702,16 @@
                             <div class="eq-selector" id="rental-equipment-selector"></div>
                         </div>
 
+                        <div style="margin-top: 18px;">
+                            <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px;">
+                                Equipe / Funcionarios (marque e defina o valor na hora)
+                            </label>
+                            <div class="eq-selector" id="rental-staff-selector"></div>
+                            <small id="rental-staff-hint" style="font-size:0.7rem;color:var(--text-secondary);margin-top:6px;display:block;">
+                                Marque os funcionarios e informe o valor combinado de cada um (Montagem, Operacao, Carregamento, etc.).
+                            </small>
+                        </div>
+
                         <div class="btn-group">
                             <button type="submit" class="btn btn-accent">&#10133; Registrar Aluguel</button>
                         </div>
@@ -1987,6 +2003,106 @@
                     <div id="suppliers-empty" class="empty-state" style="display:none;">
                         <div class="empty-icon">&#128666;</div>
                         <p>Nenhum fornecedor cadastrado</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STAFF -->
+            <div id="page-staff" class="page">
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#10133;</div> Cadastrar Funcionario
+                    </div>
+                    <form id="form-add-staff" onsubmit="addStaff(event)">
+                        <div class="form-grid">
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Nome</label>
+                                <input type="text" id="st-name" required placeholder="Nome do funcionario">
+                                <small style="color:var(--text-secondary);font-size:0.72rem;">Codigo automatico: <strong>F001, F002...</strong></small>
+                            </div>
+                            <div class="form-group">
+                                <label>Foto (via internet)</label>
+                                <input type="url" id="st-photo-url" placeholder="https://... URL da foto" oninput="previewStaffPhoto()">
+                            </div>
+                            <div class="form-group">
+                                <label>Foto (do PC)</label>
+                                <input type="file" id="st-photo-file" accept="image/*" onchange="previewStaffPhoto()">
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <img id="st-photo-preview" alt="Preview da foto" style="display:none;max-height:130px;max-width:200px;border-radius:8px;object-fit:cover;">
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Servicos que presta (com valor R$)</label>
+                                <div id="st-service-rows"></div>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-ghost btn-sm" onclick="addStaffServiceRow()">&#43; Adicionar servico</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Disponibilidade</label>
+                                <select id="st-avail">
+                                    <option value="disponivel">Disponivel</option>
+                                    <option value="indisponivel">Indisponivel</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="text" id="st-phone" placeholder="(00) 00000-0000" oninput="maskPhone(this)">
+                            </div>
+                            <div class="form-group">
+                                <label>WhatsApp</label>
+                                <input type="text" id="st-whatsapp" placeholder="(00) 00000-0000" oninput="maskPhone(this)">
+                            </div>
+                            <div class="form-group">
+                                <label>E-mail</label>
+                                <input type="email" id="st-email" placeholder="email@exemplo.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Cidade</label>
+                                <input type="text" id="st-city" placeholder="Ex: Sao Paulo">
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Observacoes</label>
+                                <textarea id="st-notes" rows="3" placeholder="Ex: Disponivel aos fins de semana, monta e opera..."></textarea>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-accent">&#10133; Cadastrar Funcionario</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon">&#128736;</div> Funcionarios Cadastrados
+                    </div>
+                    <div class="search-bar">
+                        <input type="text" id="search-staff" placeholder="Buscar funcionario..." oninput="renderStaff()">
+                        <select id="filter-staff-avail" onchange="renderStaff()">
+                            <option value="">Todos</option>
+                            <option value="disponivel">Disponivel</option>
+                            <option value="indisponivel">Indisponivel</option>
+                        </select>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Foto</th>
+                                    <th>Codigo</th>
+                                    <th>Funcionario</th>
+                                    <th>Servicos (R$)</th>
+                                    <th>Contato</th>
+                                    <th>Disponibilidade</th>
+                                    <th>Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-table"></tbody>
+                        </table>
+                    </div>
+                    <div id="staff-empty" class="empty-state" style="display:none;">
+                        <div class="empty-icon">&#128736;</div>
+                        <p>Nenhum funcionario cadastrado</p>
                     </div>
                 </div>
             </div>
@@ -2308,6 +2424,7 @@
         let rentals = JSON.parse(localStorage.getItem('sc_rentals') || '[]');
         let clients = JSON.parse(localStorage.getItem('sc_clients') || '[]');
         let suppliers = JSON.parse(localStorage.getItem('sc_suppliers') || '[]');
+        let staff = JSON.parse(localStorage.getItem('sc_staff') || '[]');
 
         let editingRentalId = null;
         let editingEqId = null;
@@ -2363,7 +2480,7 @@
 
         async function loadFromDb(onlyIfEmpty) {
             if (!dbOnline || !db) return false;
-            const hasLocal = inventory.length || rentals.length || clients.length || suppliers.length;
+            const hasLocal = inventory.length || rentals.length || clients.length || suppliers.length || staff.length;
             if (onlyIfEmpty && hasLocal) return false;
             try {
                 const i = await db.from('inventory').select('*').order('id', { ascending: true });
@@ -2374,18 +2491,22 @@
                 if (c.error) throw c.error;
                 const sp = await db.from('suppliers').select('*').order('id', { ascending: true });
                 if (sp.error) throw sp.error;
-                if (!i.data.length && !r.data.length && !c.data.length && !sp.data.length) return false;
+                const stf = await db.from('staff').select('*').order('id', { ascending: true });
+                if (stf.error) throw stf.error;
+                if (!i.data.length && !r.data.length && !c.data.length && !sp.data.length && !stf.data.length) return false;
                 inventory = i.data || [];
                 rentals = r.data || [];
                 clients = c.data || [];
                 suppliers = sp.data || [];
+                staff = stf.data || [];
                 save();
                 renderDashboard(); updateStats(); fillClientList();
                 if (document.getElementById('page-inventory').classList.contains('active')) renderInventory();
-                if (document.getElementById('page-rentals').classList.contains('active')) { renderRentals(); renderEquipmentSelector(); }
+                if (document.getElementById('page-rentals').classList.contains('active')) { renderRentals(); renderEquipmentSelector(); renderStaffSelector('rental'); }
                 if (document.getElementById('page-clients').classList.contains('active')) renderClients();
                 if (document.getElementById('page-events').classList.contains('active')) renderEvents();
                 if (document.getElementById('page-suppliers').classList.contains('active')) renderSuppliers();
+                if (document.getElementById('page-staff').classList.contains('active')) renderStaff();
                 return true;
             } catch (e) {
                 console.warn('load db', e);
@@ -2400,6 +2521,7 @@
                 if (clients.length) for (const cl of clients) await db.from('clients').upsert(cl);
                 if (rentals.length) for (const r of rentals) await db.from('rentals').upsert(r);
                 if (suppliers.length) for (const sp of suppliers) await db.from('suppliers').upsert(sp);
+                if (staff.length) for (const stf of staff) await db.from('staff').upsert(stf);
             } catch (e) { console.warn('migrate', e); }
         }
 
@@ -2410,6 +2532,7 @@
                 await db.from('clients').delete().gte('id', 0);
                 await db.from('rentals').delete().gte('id', 0);
                 await db.from('suppliers').delete().gte('id', 0);
+                await db.from('staff').delete().gte('id', 0);
                 await migrateLocalToDb();
             } catch (e) { console.warn('restore db', e); }
         }
@@ -2474,6 +2597,7 @@
                 localStorage.setItem('sc_rentals', JSON.stringify(rentals));
                 localStorage.setItem('sc_clients', JSON.stringify(clients));
                 localStorage.setItem('sc_suppliers', JSON.stringify(suppliers));
+                localStorage.setItem('sc_staff', JSON.stringify(staff));
             } catch (e) {
                 console.warn('armazenamento indisponivel', e);
             }
@@ -2490,6 +2614,7 @@
             else if (id === 'page-clients') renderClients();
             else if (id === 'page-events') renderEvents();
             else if (id === 'page-reports') renderReports();
+            else if (id === 'page-staff') renderStaff();
             else if (id === 'page-settings') { renderSettings(); updateDbStatus(); }
         }
 
@@ -2506,9 +2631,10 @@
 
             if (page === 'dashboard') renderDashboard();
             if (page === 'inventory') renderInventory();
-            if (page === 'rentals') { renderRentals(); renderEquipmentSelector(); }
+            if (page === 'rentals') { renderRentals(); renderEquipmentSelector(); renderStaffSelector('rental'); }
             if (page === 'clients') renderClients();
             if (page === 'suppliers') renderSuppliers();
+            if (page === 'staff') renderStaff();
             if (page === 'events') renderEvents();
             if (page === 'reports') renderReports();
             if (page === 'settings') renderSettings();
@@ -2606,7 +2732,8 @@
             dbInsert('inventory', eq);
             document.getElementById('form-add-equipment').reset();
             document.getElementById('eq-qty').value = 1;
-            initEquipmentPhotoSlots();
+initEquipmentPhotoSlots();
+        initStaffServiceRows();
             renderInventory();
             updateStats();
         }
@@ -2861,6 +2988,57 @@
             el.classList.toggle('checked', cb.checked);
         }
 
+        function renderStaffSelector(prefix, sel) {
+            const c = document.getElementById(prefix + '-staff-selector');
+            if (!c) return;
+            const selIds = (sel || []).map(x => x.empId);
+            const team = staff.filter(s => s.avail !== 'indisponivel');
+            if (!team.length) {
+                c.innerHTML = '<div class="empty-state"><p>Nenhum funcionario disponivel</p></div>';
+                return;
+            }
+            c.innerHTML = team.map(s => {
+                const svcHint = (s.services || []).map(x => '&bull; ' + escAttr(x.n) + ' ' + fmtBRL(x.v)).join(' ');
+                const prev = (sel || []).find(x => x.empId === s.id);
+                const checked = !!prev;
+                return `
+                <div class="eq-check ${checked ? 'checked' : ''}">
+                    <input type="checkbox" id="${prefix}-staff-${s.id}" value="${s.id}" ${checked ? 'checked' : ''}>
+                    <label for="${prefix}-staff-${s.id}">${s.photo ? '<img src="' + escAttr(s.photo) + '" class="photo-thumb" style="display:inline-block;vertical-align:middle;margin-right:6px;">' : ''}${s.code ? '<span class="badge badge-blue">' + s.code + '</span> ' : ''}${escAttr(s.name)}${svcHint ? '<small>' + svcHint + '</small>' : ''}</label>
+                    <input type="number" class="qty-input" id="${prefix}-staff-val-${s.id}" min="0" step="0.01" placeholder="Valor" value="${prev ? prev.value : ''}" ${checked ? '' : 'disabled'} onclick="event.stopPropagation()">
+                </div>`;
+            }).join('');
+        }
+
+        function toggleStaffCheck(el, prefix) {
+            const cb = el.querySelector('input[type="checkbox"]');
+            cb.checked = !cb.checked;
+            el.classList.toggle('checked', cb.checked);
+            const val = document.getElementById(prefix + '-staff-val-' + cb.value);
+            if (val) {
+                val.disabled = !cb.checked;
+                if (cb.checked) val.focus();
+            }
+            if (cb.checked) {
+                const hint = document.getElementById(prefix + '-staff-hint');
+                if (hint) hint.style.display = 'none';
+            }
+        }
+
+        function gatherStaffSelection(prefix) {
+            const selected = [];
+            const c = document.getElementById(prefix + '-staff-selector');
+            if (!c) return selected;
+            c.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                const stf = staff.find(x => x.id === parseInt(cb.value));
+                if (!stf) return;
+                const valEl = document.getElementById(prefix + '-staff-val-' + cb.value);
+                const accident = valEl ? (parseFloat(valEl.value) || 0) : 0;
+                selected.push({ empId: stf.id, empName: stf.name, code: stf.code || '', services: stf.services || [], value: accident });
+            });
+            return selected;
+        }
+
         function addRental(e) {
             e.preventDefault();
             const selected = [];
@@ -2888,6 +3066,14 @@
                 dbInsert('clients', matchedClient);
             }
 
+            const staffTeam = gatherStaffSelection('rental');
+            const noVal = staffTeam.filter(x => !x.value || x.value <= 0);
+            if (noVal.length) {
+                alert('Informe o valor na hora para: ' + noVal.map(x => x.empName).join(', '));
+                return;
+            }
+            const staffTotal = staffTeam.reduce((s, x) => s + x.value, 0);
+
             const rental = {
                 id: Date.now(),
                 clientId: matchedClient ? matchedClient.id : null,
@@ -2903,6 +3089,8 @@
                 status: document.getElementById('rent-status').value,
                 notes: document.getElementById('rent-notes').value.trim(),
                 equipment: selected,
+                staff: staffTeam,
+                staffTotal: staffTotal,
                 createdAt: new Date().toISOString()
             };
 
@@ -2919,6 +3107,7 @@
                 if (eq) dbUpdate('inventory', eq);
             });
             document.getElementById('form-add-rental').reset();
+            renderStaffSelector('rental');
             renderRentals(); renderEquipmentSelector(); updateStats(); fillClientList();
         }
 
@@ -2985,6 +3174,10 @@
                 `<div class="summary-row"><span>${item.qty}x ${item.name} <span class="badge badge-accent" style="margin-left:6px">${item.category}</span></span><span>${fmtBRL(item.qty * item.unitValue)}</span></div>`
             ).join('');
 
+            const stfList = (r.staff || []).map(x =>
+                `<div class="summary-row"><span>${x.code ? '<span class="badge badge-blue">' + x.code + '</span> ' : ''}${escAttr(x.empName)}${(x.services && x.services.length) ? '<small style="color:var(--text-secondary)"> ' + x.services.map(sv => sv.n).join(', ') + '</small>' : ''}</span><span style="color:var(--accent-2);font-weight:700">${fmtBRL(x.value)}</span></div>`
+            ).join('');
+
             document.getElementById('modal-content').innerHTML = `
                 <h2>&#128203; Detalhes do Aluguel</h2>
                 <div class="detail-grid">
@@ -3003,8 +3196,14 @@
                 <div class="summary-box">
                     <h3>&#128230; Material Alugado</h3>
                     ${eqList}
-                    <div class="summary-total">Total: ${fmtBRL(r.totalValue)}</div>
+                    <div class="summary-total">Total Geral: ${fmtBRL(r.totalValue)}</div>
                 </div>
+                ${(r.staff && r.staff.length) ? `
+                <div class="summary-box">
+                    <h3>&#128736; Equipe / Servicos</h3>
+                    ${stfList}
+                    <div class="summary-total">Total Equipe: ${fmtBRL(r.staffTotal || 0)}</div>
+                </div>` : ''}
                 <div class="btn-group" style="justify-content:flex-end;margin-top:16px;flex-wrap:wrap;">
                     <button type="button" class="btn btn-ghost" onclick="closeModal()">Fechar</button>
                     <button type="button" class="btn btn-ghost" onclick="closeModal(); editRental(${r.id})">&#9998; Editar</button>
@@ -3062,6 +3261,10 @@
                     <div style="margin-top:10px;">
                         <label style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.8px;">Material deste aluguel</label>
                         <div class="eq-selector">${equipmentEditHTML(r) || '<div class="empty-state"><p>Nenhum equipamento cadastrado</p></div>'}</div>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <label style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.8px;">Equipe / Funcionarios (valor definido na hora)</label>
+                        <div class="eq-selector" id="rer-staff-selector"></div>
                     </div>
                     <div class="btn-group" style="justify-content:flex-end;margin-top:14px;">
                         <button type="button" class="btn btn-ghost" onclick="cancelInlineEdit()">Cancelar</button>
@@ -3162,6 +3365,7 @@
             else if (type === 'equipment') doDeleteEquipment(id);
             else if (type === 'client') doDeleteClient(id);
             else if (type === 'supplier') doDeleteSupplier(id);
+            else if (type === 'staff') doDeleteStaff(id);
             else if (type === 'cancel') doCancelRental(id);
             else if (type === 'return') doReturnEquipment(id);
         }
@@ -3206,8 +3410,15 @@
             });
             if (!selected.length) { alert('Selecione pelo menos um equipamento!'); return; }
 
-            const wasActive = r.status !== 'concluido' && r.status !== 'cancelado';
+            const staffTeam = gatherStaffSelection('rer');
+            const noVal = staffTeam.filter(x => !x.value || x.value <= 0);
+            if (noVal.length) {
+                alert('Informe o valor na hora para: ' + noVal.map(x => x.empName).join(', '));
+                return;
+            }
+            const staffTotal = staffTeam.reduce((s, x) => s + x.value, 0);
 
+            const wasActive = r.status !== 'concluido' && r.status !== 'cancelado';
             const oldMap = {};
             (r.equipment || []).forEach(e => { oldMap[e.id] = (oldMap[e.id] || 0) + e.qty; });
             const newMap = {};
@@ -3238,6 +3449,8 @@
             r.status = document.getElementById('rer-status').value;
             r.notes = document.getElementById('rer-notes').value.trim();
             r.equipment = selected;
+            r.staff = staffTeam;
+            r.staffTotal = staffTotal;
 
             const mc = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
             if (mc) mc.lastRentDate = r.date;
@@ -3308,6 +3521,11 @@
                     </td>
                 </tr>`;
             }).join('');
+
+            if (editingRentalId !== null) {
+                const er = rentals.find(x => x.id === editingRentalId);
+                renderStaffSelector('rer', (er && er.staff) || []);
+            }
         }
 
         // ===== CLIENT ACCOUNTS (pagamentos) =====
@@ -4106,6 +4324,298 @@ renderPieChart('dash-chart-pie', cats);
             document.getElementById('modal-bg').classList.add('active');
         }
 
+        // ===== STAFF =====
+        const STAFF_SERVICES = ['Montagem', 'Operacao', 'Carregamento', 'Transporte', 'Tecnico de Som', 'DJ', 'Assistente', 'Outro'];
+
+        function staffServiceRowHTML(selName, val) {
+            const opts = STAFF_SERVICES.map(s => '<option value="' + s + '" ' + (s === selName ? 'selected' : '') + '>' + s + '</option>').join('');
+            return '<div class="st-service-row">' +
+                '<select>' + opts + '</select>' +
+                '<input type="number" min="0" step="0.01" placeholder="R$ 0,00" value="' + (val || '') + '">' +
+                '<button type="button" class="btn btn-danger-ghost btn-sm" onclick="removeStaffServiceRow(this)">&#10005;</button>' +
+                '</div>';
+        }
+
+        function initStaffServiceRows() {
+            const c = document.getElementById('st-service-rows');
+            if (!c || c.children.length) return;
+            c.innerHTML = staffServiceRowHTML('Montagem', '') + staffServiceRowHTML('Operacao', '') + staffServiceRowHTML('Carregamento', '');
+        }
+
+        function addStaffServiceRow() {
+            const c = document.getElementById('st-service-rows');
+            if (!c) return;
+            if (c.children.length >= 10) { appAlert('Maximo de 10 servicos por funcionario.'); return; }
+            c.insertAdjacentHTML('beforeend', staffServiceRowHTML('', ''));
+        }
+
+        function removeStaffServiceRow(btn) {
+            const c = document.getElementById('st-service-rows');
+            if (!c || c.children.length <= 1) return;
+            btn.closest('.st-service-row').remove();
+        }
+
+        function collectStaffServices(scope) {
+            const rows = (scope === 'add')
+                ? document.querySelectorAll('#st-service-rows .st-service-row')
+                : document.querySelectorAll('#edit-st-service-rows .st-service-row');
+            const list = [];
+            rows.forEach(r => {
+                const n = r.querySelector('select').value.trim();
+                const v = parseFloat(r.querySelector('input[type=number]').value) || 0;
+                if (n && v > 0) list.push({ n: n, v: v });
+            });
+            return list;
+        }
+
+        function staffCode() {
+            let max = 0;
+            staff.forEach(s => {
+                const m = /^F(\d+)$/.exec(s.code || '');
+                if (m) max = Math.max(max, parseInt(m[1], 10));
+            });
+            return 'F' + String(max + 1).padStart(3, '0');
+        }
+
+        function previewStaffPhoto() {
+            const img = document.getElementById('st-photo-preview');
+            const url = document.getElementById('st-photo-url').value.trim();
+            const file = document.getElementById('st-photo-file').files[0];
+            if (file) {
+                const r = new FileReader();
+                r.onload = function () { img.src = r.result; img.style.display = 'block'; };
+                r.readAsDataURL(file);
+            } else if (url) {
+                img.onload = function () { img.style.display = 'block'; };
+                img.onerror = function () { img.style.display = 'none'; };
+                img.src = url;
+            } else {
+                img.removeAttribute('src');
+                img.style.display = 'none';
+            }
+        }
+
+        function hideStaffPhotoPreview() {
+            const img = document.getElementById('st-photo-preview');
+            if (img) { img.style.display = 'none'; img.removeAttribute('src'); }
+        }
+
+        function addStaff(e) {
+            e.preventDefault();
+            const services = collectStaffServices('add');
+            if (!services.length) { alert('Informe ao menos um servico com valor para o funcionario.'); return; }
+            const file = document.getElementById('st-photo-file').files[0];
+            const url = document.getElementById('st-photo-url').value.trim();
+            const doPush = function (photo) {
+                const stf = {
+                    id: Date.now(),
+                    code: staffCode(),
+                    name: document.getElementById('st-name').value.trim(),
+                    services: services,
+                    avail: document.getElementById('st-avail').value,
+                    phone: document.getElementById('st-phone').value.trim(),
+                    whatsapp: document.getElementById('st-whatsapp').value.trim(),
+                    email: document.getElementById('st-email').value.trim(),
+                    city: document.getElementById('st-city').value.trim(),
+                    notes: document.getElementById('st-notes').value.trim(),
+                    photo: photo || '',
+                    createdAt: new Date().toISOString()
+                };
+                staff.push(stf);
+                save();
+                dbInsert('staff', stf);
+                document.getElementById('form-add-staff').reset();
+                initStaffServiceRows();
+                hideStaffPhotoPreview();
+                renderStaff();
+            };
+            if (file) processEqFile(file, doPush);
+            else doPush(url);
+        }
+
+        function renderStaff() {
+            const search = document.getElementById('search-staff').value.toLowerCase();
+            const fav = document.getElementById('filter-staff-avail').value;
+            let filtered = staff.filter(s => {
+                const ms = s.name.toLowerCase().includes(search) || (s.code && s.code.toLowerCase().includes(search)) ||
+                    (s.city && s.city.toLowerCase().includes(search)) ||
+                    (s.services && s.services.some(x => x.n.toLowerCase().includes(search)));
+                const ma = !fav || s.avail === fav;
+                return ms && ma;
+            }).sort((a, b) => a.code.localeCompare(b.code));
+
+            const tbody = document.getElementById('staff-table');
+            const empty = document.getElementById('staff-empty');
+            if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = filtered.map(s => {
+                if (confirmDel && confirmDel.type === 'staff' && confirmDel.id === s.id) {
+                    return confirmStripRowHTML('staff', s.id, 'Excluir este funcionario?', 'danger');
+                }
+                const svc = (s.services || []).map(x => '<div><span class="badge badge-accent">' + escAttr(x.n) + '</span> <span style="color:var(--accent-2);font-weight:700;font-size:0.8rem;">' + fmtBRL(x.v) + '</span></div>').join('');
+                return `
+                <tr>
+                    <td>${s.photo ? `<img src="${escAttr(s.photo)}" class="photo-thumb" alt="" onclick="viewStaff(${s.id})">` : '<span class="photo-thumb photo-empty" onclick="viewStaff(' + s.id + ')">&#128099;</span>'}</td>
+                    <td><span class="badge badge-blue">${s.code || '-'}</span></td>
+                    <td class="td-name" style="cursor:pointer;color:var(--accent-2)" onclick="viewStaff(${s.id})">${s.name}</td>
+                    <td>${svc || '-'}</td>
+                    <td class="td-contato">
+                        ${s.phone ? '<div>' + s.phone + '</div>' : ''}
+                        ${s.whatsapp ? '<div style="color:var(--green)">' + s.whatsapp + ' (WhatsApp)</div>' : ''}
+                        ${s.email ? '<div style="font-size:0.75rem;color:var(--text-secondary)">' + s.email + '</div>' : ''}
+                    </td>
+                    <td><span class="badge ${s.avail === 'disponivel' ? 'badge-green' : 'badge-yellow'}">${s.avail === 'disponivel' ? 'Disponivel' : 'Indisponivel'}</span></td>
+                    <td class="action-btns">
+                        <button class="btn btn-ghost btn-sm" onclick="viewStaff(${s.id})" title="Ver ficha">&#128065;</button>
+                        <button class="btn btn-ghost btn-sm" onclick="editStaff(${s.id})" title="Editar">&#9998;</button>
+                        <button class="btn btn-danger-ghost btn-sm" onclick="requestDeleteStaff(${s.id})" title="Excluir">&#10005;</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function requestDeleteStaff(id) {
+            confirmDel = { type: 'staff', id: id };
+            refreshCurrentPage();
+        }
+
+        function doDeleteStaff(id) {
+            staff = staff.filter(x => x.id !== id);
+            save(); renderStaff();
+            refreshCurrentPage();
+            dbDelete('staff', id);
+        }
+
+        function editStaff(id) {
+            const s = staff.find(x => x.id === id);
+            if (!s) return;
+            const field = (label, idName, value, placeholder = '', type = 'text') => `
+                <div class="form-group">
+                    <label>${label}</label>
+                    <input type="${type}" id="${idName}" value="${escAttr(value)}" placeholder="${placeholder}">
+                </div>`;
+            const svcRows = (s.services && s.services.length ? s.services : [{ n: 'Montagem', v: '' }])
+                .map(x => staffServiceRowHTML(x.n, x.v)).join('');
+            document.getElementById('modal-content').innerHTML = `
+                <h2>&#9998; Editar Funcionario</h2>
+                <form id="form-edit-staff" onsubmit="saveStaffEdits(${s.id}); return false;">
+                    <div class="form-grid">
+                        ${field('Nome', 'edit-st-name', s.name || '', 'Nome do funcionario')}
+                        <div class="form-group">
+                            <label>Codigo</label>
+                            <div><span class="badge badge-blue" style="font-size:1rem;">${s.code || '-'}</span></div>
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Foto</label>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                ${s.photo ? '<img src="' + escAttr(s.photo) + '" alt="" style="height:64px;width:64px;object-fit:cover;border-radius:8px;">' : '<span class="photo-thumb photo-empty">&#128099;</span>'}
+                                <input type="url" id="edit-st-photo-url" placeholder="Nova foto via URL (ou x para remover)" style="flex:1;min-width:160px;">
+                                <input type="file" id="edit-st-photo-file" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="form-group" style="grid-column:span 2;">
+                            <label>Servicos que presta (com valor R$)</label>
+                            <div id="edit-st-service-rows">${svcRows}</div>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="addEditStaffServiceRow()">&#43; Adicionar servico</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Disponibilidade</label>
+                            <select id="edit-st-avail">
+                                <option value="disponivel" ${s.avail !== 'indisponivel' ? 'selected' : ''}>Disponivel</option>
+                                <option value="indisponivel" ${s.avail === 'indisponivel' ? 'selected' : ''}>Indisponivel</option>
+                            </select>
+                        </div>
+                        ${field('Telefone', 'edit-st-phone', s.phone || '', '(00) 00000-0000')}
+                        ${field('WhatsApp', 'edit-st-whatsapp', s.whatsapp || '', '(00) 00000-0000')}
+                        ${field('E-mail', 'edit-st-email', s.email || '', 'email@exemplo.com', 'email')}
+                        ${field('Cidade', 'edit-st-city', s.city || '', 'Ex: Sao Paulo')}
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Observacoes</label>
+                            <textarea id="edit-st-notes" rows="3">${escAttr(s.notes || '')}</textarea>
+                        </div>
+                    </div>
+                    <div class="btn-group" style="justify-content: flex-end;">
+                        <button type="button" class="btn btn-danger-ghost" onclick="requestDeleteStaff(${s.id}); closeModal()">&#128465; Excluir</button>
+                        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-accent">&#10003; Salvar Alteracoes</button>
+                    </div>
+                </form>
+            `;
+            [['edit-st-phone', maskPhone], ['edit-st-whatsapp', maskPhone]].forEach(function (p) {
+                const el = document.getElementById(p[0]);
+                if (el) el.addEventListener('input', function () { p[1](this); });
+            });
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
+        function addEditStaffServiceRow() {
+            const c = document.getElementById('edit-st-service-rows');
+            if (!c) return;
+            if (c.children.length >= 10) { appAlert('Maximo de 10 servicos por funcionario.'); return; }
+            c.insertAdjacentHTML('beforeend', staffServiceRowHTML('', ''));
+        }
+
+        function saveStaffEdits(id) {
+            const s = staff.find(x => x.id === id);
+            if (!s) return;
+            const v = n => document.getElementById(n).value.trim();
+            const services = collectStaffServices('edit');
+            if (!services.length) { alert('Informe ao menos um servico com valor para o funcionario.'); return; }
+            const finish = function () {
+                s.name = v('edit-st-name');
+                s.services = services;
+                s.avail = document.getElementById('edit-st-avail').value;
+                s.phone = v('edit-st-phone');
+                s.whatsapp = v('edit-st-whatsapp');
+                s.email = v('edit-st-email');
+                s.city = v('edit-st-city');
+                s.notes = v('edit-st-notes');
+                save();
+                renderStaff();
+                closeModal();
+                dbUpdate('staff', s);
+            };
+            const phUrl = v('edit-st-photo-url');
+            const phFile = document.getElementById('edit-st-photo-file').files[0];
+            if (phUrl.toLowerCase() === 'x') { s.photo = ''; finish(); }
+            else if (phUrl) { s.photo = phUrl; finish(); }
+            else if (phFile) { processEqFile(phFile, function (dataUrl) { s.photo = dataUrl; finish(); }); }
+            else finish();
+        }
+
+        function viewStaff(id) {
+            const s = staff.find(x => x.id === id);
+            if (!s) return;
+            const row = (lbl, val) => val
+                ? '<div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">' + lbl + '</span><span>' + val + '</span></div>'
+                : '';
+            const svcList = (s.services || []).map(x => '<div class="summary-row"><span>' + escAttr(x.n) + '</span><span style="color:var(--accent-2);font-weight:700">' + fmtBRL(x.v) + '</span></div>').join('');
+            document.getElementById('modal-content').innerHTML = `
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:6px;">
+                    ${s.photo ? '<img src="' + escAttr(s.photo) + '" alt="" style="height:90px;width:90px;object-fit:cover;border-radius:12px;">' : '<span class="photo-thumb photo-empty" style="height:90px;width:90px;font-size:2rem;display:flex;align-items:center;justify-content:center;">&#128099;</span>'}
+                    <div>
+                        <h2 style="margin-bottom:4px;">&#128736; ${escAttr(s.name)}</h2>
+                        <span class="badge badge-blue">${s.code || '-'}</span>
+                    </div>
+                </div>
+                <div class="summary-box">
+                    <div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">Disponibilidade</span><span><span class="badge ${s.avail === 'disponivel' ? 'badge-green' : 'badge-yellow'}">${s.avail === 'disponivel' ? 'Disponivel' : 'Indisponivel'}</span></span></div>
+                    ${row('Telefone', s.phone)}
+                    ${row('WhatsApp', s.whatsapp)}
+                    ${row('E-mail', s.email)}
+                    ${row('Cidade', s.city)}
+                </div>
+                <div class="summary-box"><h3>&#128736; Servicos</h3>${svcList}</div>
+                ${s.notes ? '<div class="summary-box"><div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">Observacoes</span><span>' + escAttr(s.notes) + '</span></div></div>' : ''}
+                <div class="btn-group" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-ghost" onclick="editStaff(${s.id})">&#9998; Editar</button>
+                </div>`;
+            document.getElementById('modal-bg').classList.add('active');
+        }
+
         // ===== HELPERS =====
         function escAttr(s) {
             return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -4669,7 +5179,8 @@ renderPieChart('dash-chart-pie', cats);
                 inventory: inventory,
                 clients: clients,
                 rentals: rentals,
-                suppliers: suppliers
+                suppliers: suppliers,
+                staff: staff
             };
             downloadFile(JSON.stringify(data, null, 2), backupFilename('json'), 'application/json');
         }
@@ -4701,6 +5212,7 @@ renderPieChart('dash-chart-pie', cats);
                     rentals = data.rentals || [];
                     clients = Array.isArray(data.clients) ? data.clients : [];
                     suppliers = Array.isArray(data.suppliers) ? data.suppliers : [];
+                    staff = Array.isArray(data.staff) ? data.staff : [];
                     if (data.title !== undefined) localStorage.setItem('sc_title', data.title);
                     if (data.theme !== undefined) localStorage.setItem('sc_theme', data.theme);
                     if (data.style) localStorage.setItem('sc_style', data.style);
@@ -4711,6 +5223,7 @@ renderPieChart('dash-chart-pie', cats);
                     fillClientList();
                     renderInventory(); renderRentals(); renderClients(); renderEvents(); renderDashboard(); updateStats();
                     renderSuppliers();
+                    renderStaff();
                     emptyInventoryTable();
                     if (dbOnline) { deleteAndRestoreDb(); }
                     alert('Backup restaurado com sucesso!');
@@ -4741,8 +5254,8 @@ renderPieChart('dash-chart-pie', cats);
                 rows = clients.map(c => [c.type || '', c.name, c.doc || '', c.phone || '', c.whatsapp || '', c.email || '', c.instagram || '', c.birth || '', c.address || '', c.neighborhood || '', c.city || '', c.cep || '', c.sourced || '', c.notes || '']);
                 filename = backupFilename('clientes.csv');
             } else if (type === 'rentals') {
-                headers = ['Cliente', 'Telefone', 'Evento', 'Local', 'Data', 'Horario Inicio', 'Horario Fim', 'Valor Total (R$)', 'Recebido (R$)', 'Status', 'Observacoes', 'Material'];
-                rows = rentals.map(r => [r.client, r.phone || '', r.eventName, r.location, fmtDate(r.date), r.timeStart, r.timeEnd || '', r.totalValue.toFixed(2).replace('.', ','), (r.deposit || 0).toFixed(2).replace('.', ','), r.status, r.notes || '', r.equipment.map(e => e.qty + 'x ' + e.name).join('; ')]);
+                headers = ['Cliente', 'Telefone', 'Evento', 'Local', 'Data', 'Horario Inicio', 'Horario Fim', 'Valor Total (R$)', 'Recebido (R$)', 'Status', 'Observacoes', 'Material', 'Equipe'];
+                rows = rentals.map(r => [r.client, r.phone || '', r.eventName, r.location, fmtDate(r.date), r.timeStart, r.timeEnd || '', r.totalValue.toFixed(2).replace('.', ','), (r.deposit || 0).toFixed(2).replace('.', ','), r.status, r.notes || '', r.equipment.map(e => e.qty + 'x ' + e.name).join('; '), (r.staff || []).map(x => x.empName + ' (R$' + String(x.value).replace('.', ',') + ')').join('; ')]);
                 filename = backupFilename('alugueis.csv');
             } else {
                 return;
@@ -4954,7 +5467,7 @@ renderPieChart('dash-chart-pie', cats);
         initEquipmentPhotoSlots();
         if (dbOnline) { (async () => {
             const loaded = await loadFromDb(true);
-            if (!loaded && (inventory.length || rentals.length || clients.length || suppliers.length)) await migrateLocalToDb();
+            if (!loaded && (inventory.length || rentals.length || clients.length || suppliers.length || staff.length)) await migrateLocalToDb();
         })(); }
         renderDashboard();
         updateStats();
