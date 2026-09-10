@@ -1777,6 +1777,7 @@
                                     <th>Data</th>
                                     <th>Horario</th>
                                     <th>Material</th>
+                                    <th>Equipe</th>
                                     <th>Valor</th>
                                     <th>Pagamento</th>
                                     <th>Status</th>
@@ -3307,7 +3308,7 @@ initEquipmentPhotoSlots();
         function confirmStripRowHTML(type, id, msg, tone) {
             const bg = tone === 'ok' ? 'var(--green-bg)' : 'var(--red-bg)';
             const color = tone === 'ok' ? 'var(--green)' : 'var(--red)';
-            return `<tr><td colspan="20" style="background:${bg};">
+            return `<tr><td colspan="11" style="background:${bg};">
                 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;">
                     <strong style="color:${color};font-size:0.85rem;">${msg}</strong>
                     <div style="display:flex;gap:8px;">
@@ -3498,7 +3499,7 @@ initEquipmentPhotoSlots();
 
             tbody.innerHTML = filtered.map(r => {
                 if (r.id === editingRentalId) {
-                    return `<tr id="rental-edit-row"><td colspan="10">${buildEditFormHTML(r)}</td></tr>`;
+                    return `<tr id="rental-edit-row"><td colspan="11">${buildEditFormHTML(r)}</td></tr>`;
                 }
                 if (confirmDel && confirmDel.id === r.id) {
                     if (confirmDel.type === 'rental') return confirmStripRowHTML('rental', r.id, 'Excluir este aluguel permanentemente?', 'danger');
@@ -3513,6 +3514,7 @@ initEquipmentPhotoSlots();
                     <td>${fmtDate(r.date)}</td>
                     <td>${r.timeStart}${r.timeEnd ? ' - ' + r.timeEnd : ''}</td>
                     <td>${r.equipment.map(e => e.qty + 'x ' + e.name).join(', ')}</td>
+                    <td>${(r.staff && r.staff.length) ? r.staff.map(x => '<span class="badge badge-blue">' + (x.code || '') + '</span> ' + fmtBRL(x.value)).join('<br>') : '<span style="color:var(--text-secondary)">-</span>'}</td>
                     <td><strong style="color:var(--green)">${fmtBRL(netVal(r))}</strong></td>
                     <td>${payBadge(r)}</td>
                     <td><span class="badge ${statusBadge(r.status)}">${r.status}</span></td>
