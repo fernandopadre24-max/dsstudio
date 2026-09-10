@@ -4667,7 +4667,7 @@ renderPieChart('dash-chart-pie', cats);
                 const v = me.value || 0;
                 prest += v;
                 const tv = r.totalValue || 0;
-                if (tv > 0) rec += Math.min(r.deposit || 0, tv) * (v / tv);
+                if (tv > 0 && (r.deposit || 0) >= tv) rec += v;
             });
             return { prest: prest, rec: rec, open: prest - rec };
         }
