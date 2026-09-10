@@ -2076,6 +2076,7 @@
                     <div class="card-title">
                         <div class="icon">&#128736;</div> Funcionarios Cadastrados
                     </div>
+                    <div class="stats-row" id="staff-finance"></div>
                     <div class="search-bar">
                         <input type="text" id="search-staff" placeholder="Buscar funcionario..." oninput="renderStaff()">
                         <select id="filter-staff-avail" onchange="renderStaff()">
@@ -4439,7 +4440,21 @@ renderPieChart('dash-chart-pie', cats);
             else doPush(url);
         }
 
+        function renderStaffFinance() {
+            const c = document.getElementById('staff-finance');
+            if (!c) return;
+            let prest = 0, rec = 0;
+            staff.forEach(s => { const f = staffFinance(s); prest += f.prest; rec += f.rec; });
+            const open = prest - rec;
+            c.innerHTML = `
+                <div class="stat-chip"><div class="num">${fmtBRL(prest)}</div><div class="lbl">Servicos Prestados</div></div>
+                <div class="stat-chip"><div class="num" style="color:var(--green)">${fmtBRL(rec)}</div><div class="lbl">Recebido (Empresa)</div></div>
+                <div class="stat-chip"><div class="num" style="color:${open > 0 ? 'var(--yellow)' : 'var(--green)'}">${fmtBRL(open)}</div><div class="lbl">A Receber</div></div>
+            `;
+        }
+
         function renderStaff() {
+            renderStaffFinance();
             const search = document.getElementById('search-staff').value.toLowerCase();
             const fav = document.getElementById('filter-staff-avail').value;
             let filtered = staff.filter(s => {
@@ -4460,12 +4475,14 @@ renderPieChart('dash-chart-pie', cats);
                     return confirmStripRowHTML('staff', s.id, 'Excluir este funcionario?', 'danger');
                 }
                 const svc = (s.services || []).map(x => '<div><span class="badge badge-accent">' + escAttr(x.n) + '</span> <span style="color:var(--accent-2);font-weight:700;font-size:0.8rem;">' + fmtBRL(x.v) + '</span></div>').join('');
+                const fin = staffFinance(s);
+                const finHtml = fin.prest > 0 ? `<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px;font-size:0.72rem;color:var(--text-secondary);">Prestados: <strong>${fmtBRL(fin.prest)}</strong> | Rec: ${fmtBRL(fin.rec)} | A rec: <strong style="color:${fin.open > 0 ? 'var(--yellow)' : 'var(--green)'}">${fmtBRL(fin.open)}</strong></div>` : '';
                 return `
                 <tr>
                     <td>${s.photo ? `<img src="${escAttr(s.photo)}" class="photo-thumb" alt="" onclick="viewStaff(${s.id})">` : '<span class="photo-thumb photo-empty" onclick="viewStaff(' + s.id + ')">&#128099;</span>'}</td>
                     <td><span class="badge badge-blue">${s.code || '-'}</span></td>
                     <td class="td-name" style="cursor:pointer;color:var(--accent-2)" onclick="viewStaff(${s.id})">${s.name}</td>
-                    <td>${svc || '-'}</td>
+                    <td>${svc || '-'}${finHtml}</td>
                     <td class="td-contato">
                         ${s.phone ? '<div>' + s.phone + '</div>' : ''}
                         ${s.whatsapp ? '<div style="color:var(--green)">' + s.whatsapp + ' (WhatsApp)</div>' : ''}
@@ -4615,6 +4632,12 @@ renderPieChart('dash-chart-pie', cats);
                     ${row('Cidade', s.city)}
                 </div>
                 <div class="summary-box"><h3>&#128736; Servicos</h3>${svcList}</div>
+                ${(() => { const fin = staffFinance(s); return fin.prest > 0 ? `
+                <div class="dash-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px;">
+                    <div class="dash-card" style="padding:12px;"><div class="dash-icon">&#128230;</div><div class="dash-number" style="font-size:1.2rem">${fmtBRL(fin.prest)}</div><div class="dash-label">Servicos Prestados</div></div>
+                    <div class="dash-card" style="padding:12px;"><div class="dash-icon">&#128176;</div><div class="dash-number" style="font-size:1.2rem;color:var(--green)">${fmtBRL(fin.rec)}</div><div class="dash-label">Recebido (Empresa)</div></div>
+                    <div class="dash-card" style="padding:12px;"><div class="dash-icon">&#9203;</div><div class="dash-number" style="font-size:1.2rem;color:${fin.open > 0 ? 'var(--yellow)' : 'var(--green)'}">${fmtBRL(fin.open)}</div><div class="dash-label">A Receber</div></div>
+                </div>` : ''; })()}
                 ${s.notes ? '<div class="summary-box"><div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">Observacoes</span><span>' + escAttr(s.notes) + '</span></div></div>' : ''}
                 <div class="btn-group" style="justify-content:flex-end;">
                     <button type="button" class="btn btn-ghost" onclick="editStaff(${s.id})">&#9998; Editar</button>
@@ -4633,6 +4656,20 @@ renderPieChart('dash-chart-pie', cats);
 
         function netVal(r) {
             return (r.totalValue || 0) - (r.staffTotal || 0);
+        }
+
+        function staffFinance(stf) {
+            let prest = 0, rec = 0;
+            rentals.forEach(r => {
+                if (r.status === 'cancelado') return;
+                const me = (r.staff || []).find(x => x.empId === stf.id);
+                if (!me) return;
+                const v = me.value || 0;
+                prest += v;
+                const tv = r.totalValue || 0;
+                if (tv > 0) rec += Math.min(r.deposit || 0, tv) * (v / tv);
+            });
+            return { prest: prest, rec: rec, open: prest - rec };
         }
 
         function maskPhone(el) {
