@@ -4445,13 +4445,10 @@ renderPieChart('dash-chart-pie', cats);
         function renderStaffFinance() {
             const c = document.getElementById('staff-finance');
             if (!c) return;
-            let prest = 0, rec = 0;
-            staff.forEach(s => { const f = staffFinance(s); prest += f.prest; rec += f.rec; });
-            const open = prest - rec;
+            let prest = 0;
+            staff.forEach(s => { const f = staffFinance(s); prest += f.prest; });
             c.innerHTML = `
                 <div class="stat-chip"><div class="num">${fmtBRL(prest)}</div><div class="lbl">Servicos Prestados</div></div>
-                <div class="stat-chip"><div class="num" style="color:var(--green)">${fmtBRL(rec)}</div><div class="lbl">Recebido (Empresa)</div></div>
-                <div class="stat-chip"><div class="num" style="color:${open > 0 ? 'var(--yellow)' : 'var(--green)'}">${fmtBRL(open)}</div><div class="lbl">A Receber</div></div>
             `;
         }
 
@@ -4478,7 +4475,7 @@ renderPieChart('dash-chart-pie', cats);
                 }
                 const svc = (s.services || []).map(x => '<div><span class="badge badge-accent">' + escAttr(x.n) + '</span> <span style="color:var(--accent-2);font-weight:700;font-size:0.8rem;">' + fmtBRL(x.v) + '</span></div>').join('');
                 const fin = staffFinance(s);
-                const finHtml = fin.prest > 0 ? `<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px;font-size:0.72rem;color:var(--text-secondary);">Prestados: <strong>${fmtBRL(fin.prest)}</strong> | Rec: ${fmtBRL(fin.rec)} | A rec: <strong style="color:${fin.open > 0 ? 'var(--yellow)' : 'var(--green)'}">${fmtBRL(fin.open)}</strong></div>` : '';
+                const finHtml = fin.prest > 0 ? `<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px;font-size:0.72rem;color:var(--text-secondary);">Servicos prestados: <strong>${fmtBRL(fin.prest)}</strong></div>` : '';
                 return `
                 <tr>
                     <td>${s.photo ? `<img src="${escAttr(s.photo)}" class="photo-thumb" alt="" onclick="viewStaff(${s.id})">` : '<span class="photo-thumb photo-empty" onclick="viewStaff(' + s.id + ')">&#128099;</span>'}</td>
@@ -4635,10 +4632,8 @@ renderPieChart('dash-chart-pie', cats);
                 </div>
                 <div class="summary-box"><h3>&#128736; Servicos</h3>${svcList}</div>
                 ${(() => { const fin = staffFinance(s); return fin.prest > 0 ? `
-                <div class="dash-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px;">
-                    <div class="dash-card" style="padding:12px;"><div class="dash-icon">&#128230;</div><div class="dash-number" style="font-size:1.2rem">${fmtBRL(fin.prest)}</div><div class="dash-label">Servicos Prestados</div></div>
-                    <div class="dash-card" style="padding:12px;"><div class="dash-icon">&#128176;</div><div class="dash-number" style="font-size:1.2rem;color:var(--green)">${fmtBRL(fin.rec)}</div><div class="dash-label">Recebido (Empresa)</div></div>
-                    <div class="dash-card" style="padding:12px;"><div class="dash-icon">&#9203;</div><div class="dash-number" style="font-size:1.2rem;color:${fin.open > 0 ? 'var(--yellow)' : 'var(--green)'}">${fmtBRL(fin.open)}</div><div class="dash-label">A Receber</div></div>
+                <div class="summary-box">
+                    <div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">Servicos Prestados</span><span style="color:var(--accent-2);font-weight:700">${fmtBRL(fin.prest)}</span></div>
                 </div>` : ''; })()}
                 ${s.notes ? '<div class="summary-box"><div class="summary-row"><span style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px">Observacoes</span><span>' + escAttr(s.notes) + '</span></div></div>' : ''}
                 <div class="btn-group" style="justify-content:flex-end;">
